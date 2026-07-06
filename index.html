@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Відео Рейтинг — Wood Agency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #0B0F14;
+    --bg-glow-1: rgba(0, 212, 170, 0.07);
+    --bg-glow-2: rgba(80, 120, 255, 0.05);
+    --card: rgba(255, 255, 255, 0.04);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-hover: rgba(255, 255, 255, 0.07);
+    --text: #EDF2F1;
+    --text-dim: #8B99A5;
+    --text-faint: #5A6772;
+    --accent: #00D4AA;
+    --accent-dim: rgba(0, 212, 170, 0.14);
+    --good: #4ADE80;
+    --warn: #FBBF24;
+    --bad: #F87171;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Manrope', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 800px 500px at 15% -10%, var(--bg-glow-1), transparent),
+      radial-gradient(ellipse 700px 500px at 90% 10%, var(--bg-glow-2), transparent);
+    background-attachment: fixed;
+  }
+
+  .mono { font-family: 'DM Mono', monospace; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 20px 64px; }
+
+  /* ===== Header ===== */
+  header {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    align-items: flex-end; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .brand-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 6px;
+  }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+  .updated { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .refresh-btn {
+    font-family: 'Manrope', sans-serif;
+    background: var(--card); border: 1px solid var(--card-border);
+    color: var(--text-dim); font-size: 13px; font-weight: 600;
+    padding: 9px 16px; border-radius: 999px; cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .refresh-btn:hover { background: var(--card-hover); color: var(--text); }
+  .refresh-btn { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ===== Календар ===== */
+  .cal-wrap { position: relative; }
+  .cal-btn {
+    font-family: 'Manrope', sans-serif;
+    background: var(--card); border: 1px solid var(--card-border);
+    color: var(--text-dim); font-size: 13px; font-weight: 600;
+    padding: 9px 16px; border-radius: 999px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.18s ease;
+  }
+  .cal-btn:hover { background: var(--card-hover); color: var(--text); }
+  .cal-btn.active {
+    background: var(--accent-dim); border-color: rgba(0,212,170,0.4);
+    color: var(--accent);
+  }
+  .cal-panel {
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 50;
+    width: 300px; padding: 14px;
+    background: #121820; border: 1px solid var(--card-border);
+    border-radius: var(--radius); box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    display: none;
+  }
+  .cal-panel.open { display: block; }
+  .cal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .cal-head .cal-title { font-weight: 700; font-size: 14px; text-transform: capitalize; }
+  .cal-nav {
+    background: var(--card); border: 1px solid var(--card-border);
+    color: var(--text-dim); width: 30px; height: 30px; border-radius: 8px;
+    cursor: pointer; font-size: 14px; line-height: 1;
+  }
+  .cal-nav:hover:not(:disabled) { color: var(--accent); }
+  .cal-nav:disabled { opacity: 0.3; cursor: default; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal-wd {
+    text-align: center; font-size: 10px; font-weight: 700;
+    color: var(--text-faint); text-transform: uppercase; padding: 4px 0;
+  }
+  .cal-day {
+    position: relative; height: 34px; border-radius: 8px; border: none;
+    background: transparent; color: var(--text-faint);
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: default;
+  }
+  .cal-day.avail { color: var(--text); cursor: pointer; }
+  .cal-day.avail:hover { background: var(--card-hover); }
+  .cal-day.avail::after {
+    content: ''; position: absolute; bottom: 4px; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 4px; border-radius: 50%; background: var(--accent);
+  }
+  .cal-day.in-range { background: var(--accent-dim); border-radius: 0; }
+  .cal-day.picked {
+    background: var(--accent); color: #06251E; font-weight: 500; border-radius: 8px;
+  }
+  .cal-day.picked::after { background: #06251E; }
+  .cal-hint { font-size: 11px; color: var(--text-faint); margin-top: 10px; text-align: center; }
+  .cal-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .cal-clear {
+    background: none; border: none; color: var(--text-dim);
+    font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 600;
+    cursor: pointer; padding: 6px 10px; border-radius: 8px;
+  }
+  .cal-clear:hover { color: var(--bad); background: var(--card); }
+
+  /* ===== Summary strip ===== */
+  .summary {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-bottom: 28px;
+  }
+  .stat {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 16px 18px;
+    backdrop-filter: blur(12px);
+  }
+  .stat .label { font-size: 12px; color: var(--text-dim); font-weight: 600; margin-bottom: 6px; }
+  .stat .value { font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 500; }
+  .stat .value small { font-size: 13px; color: var(--text-faint); }
+
+  /* ===== Section titles ===== */
+  .section-title {
+    display: flex; align-items: baseline; gap: 12px;
+    margin: 8px 0 14px;
+  }
+  .section-title h2 { font-size: 17px; font-weight: 700; }
+  .section-title .hint { font-size: 12px; color: var(--text-faint); }
+
+  .norm-legend {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-dim);
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 999px; padding: 5px 12px;
+  }
+  .norm-legend .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+
+  /* ===== Rating cards ===== */
+  .rating { display: flex; flex-direction: column; gap: 10px; margin-bottom: 36px; }
+  .r-card {
+    display: grid;
+    grid-template-columns: 52px 1.4fr repeat(4, 1fr) 1.2fr;
+    gap: 14px; align-items: center;
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 16px 20px;
+    backdrop-filter: blur(12px);
+    transition: all 0.18s ease;
+  }
+  .r-card:hover { background: var(--card-hover); transform: translateY(-1px); }
+  .r-card.top {
+    border-color: rgba(0,212,170,0.35);
+    background: linear-gradient(90deg, rgba(0,212,170,0.08), var(--card) 55%);
+  }
+
+  .r-rank {
+    font-family: 'DM Mono', monospace; font-size: 20px;
+    color: var(--text-faint); text-align: center;
+  }
+  .r-card.top .r-rank { color: var(--accent); }
+  .r-rank .medal { font-size: 22px; display: block; }
+
+  .r-name { font-weight: 700; font-size: 15px; }
+  .r-name .videos { display: block; font-size: 12px; font-weight: 500; color: var(--text-faint); margin-top: 2px; }
+
+  .r-metric .m-label { font-size: 11px; color: var(--text-faint); font-weight: 600; margin-bottom: 3px; }
+  .r-metric .m-value { font-family: 'DM Mono', monospace; font-size: 16px; }
+
+  .cpl-super { color: var(--accent); }
+  .cpl-good  { color: var(--good); }
+  .cpl-warn  { color: var(--warn); }
+  .cpl-bad   { color: var(--bad); }
+  .cpl-none  { color: var(--text-faint); }
+
+  .r-score { display: flex; flex-direction: column; gap: 6px; }
+  .r-score .s-top { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-faint); font-weight: 600; }
+  .r-score .s-top b { font-family: 'DM Mono', monospace; color: var(--text); font-size: 13px; }
+  .score-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.07); overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #00A88A, var(--accent)); transition: width 0.5s ease; }
+
+  /* ===== Videos table ===== */
+  .table-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); backdrop-filter: blur(12px);
+    overflow: hidden;
+  }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  th {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-faint); font-weight: 700; text-align: left;
+    padding: 14px 16px; border-bottom: 1px solid var(--card-border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 13px 16px; font-size: 13.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  td.num { font-family: 'DM Mono', monospace; }
+  td .owner { font-weight: 600; }
+
+  a.video-link {
+    color: var(--accent); text-decoration: none; font-weight: 600;
+    border-bottom: 1px dashed rgba(0,212,170,0.4);
+  }
+  a.video-link:hover { border-bottom-style: solid; }
+
+  .badge {
+    display: inline-block; font-family: 'DM Mono', monospace;
+    font-size: 12.5px; padding: 4px 10px; border-radius: 999px;
+  }
+  .badge.super { background: rgba(0,212,170,0.12); color: var(--accent); }
+  .badge.good  { background: rgba(74,222,128,0.12); color: var(--good); }
+  .badge.warn  { background: rgba(251,191,36,0.12); color: var(--warn); }
+  .badge.bad   { background: rgba(248,113,113,0.12); color: var(--bad); }
+  .badge.none  { background: rgba(255,255,255,0.06); color: var(--text-faint); }
+
+  /* ===== States ===== */
+  .state {
+    text-align: center; padding: 60px 20px; color: var(--text-dim);
+    font-size: 14px;
+  }
+  .state.error { color: var(--bad); }
+  .spinner {
+    width: 28px; height: 28px; margin: 0 auto 14px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ===== Mobile ===== */
+  @media (max-width: 900px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+    .r-card { grid-template-columns: 40px 1fr 1fr; row-gap: 12px; }
+    .r-score { grid-column: 1 / -1; }
+  }
+  @media (max-width: 520px) {
+    h1 { font-size: 22px; }
+    .r-card { grid-template-columns: 36px 1fr; }
+    .r-metric { min-width: 45%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="brand-eyebrow">Wood Agency · Marketing</div>
+      <h1>Відео Рейтинг</h1>
+      <div class="updated" id="updatedAt"></div>
+    </div>
+    <div class="controls">
+      <div class="cal-wrap">
+        <button class="cal-btn" id="calBtn">📅 <span id="calLabel">Період</span></button>
+        <div class="cal-panel" id="calPanel">
+          <div class="cal-head">
+            <button class="cal-nav" id="calPrev" aria-label="Попередній місяць">‹</button>
+            <div class="cal-title" id="calTitle"></div>
+            <button class="cal-nav" id="calNext" aria-label="Наступний місяць">›</button>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-hint" id="calHint">Обери першу дату періоду</div>
+          <div class="cal-actions"><button class="cal-clear" id="calClear">Скинути</button></div>
+        </div>
+      </div>
+      <button class="refresh-btn" id="refreshBtn">↻ Оновити</button>
+    </div>
+  </header>
+
+  <div id="content">
+    <div class="state"><div class="spinner"></div>Завантаження даних…</div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   НАЛАШТУВАННЯ
+   ============================================================ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbznFEdPPszEhhZ2ObsKVSuvgxW3sczPODYPP_c7RZRP5ql_1SKjli_HqOvsQMpLP9F1Gw/exec';
+
+const CONFIG = {
+  PRICE_SUPER: 260,   // ≤ 260 грн — супер
+  PRICE_NORM:  350,   // 260–350 грн — норма
+  PRICE_WARN:  450,   // 350–450 грн — дорого
+  PRICE_ZERO:  700,   // при ціні ≥ 700 грн score за ціну = 0
+  WEIGHT_PRICE:  0.6, // вага ціни ЦЛ у рейтингу
+  WEIGHT_VOLUME: 0.4  // вага кількості ЦЛ у рейтингу
+};
+
+let allRows = [];
+let customRange = null;   // {from:'yyyy-mm-dd', to:'yyyy-mm-dd'} — обраний період
+let calPickStart = null;  // перша обрана дата (очікуємо другу)
+let calMonth = null;      // перше число місяця, який показує календар
+
+// Дефолт: останні 2 дні, які є в таблиці
+function defaultRange() {
+  const dates = [...new Set(allRows.map(r => r.date).filter(Boolean))].sort();
+  if (!dates.length) return null;
+  return {
+    from: dates.length > 1 ? dates[dates.length - 2] : dates[dates.length - 1],
+    to: dates[dates.length - 1]
+  };
+}
+
+/* ============================================================
+   ЗАВАНТАЖЕННЯ
+   ============================================================ */
+async function loadData() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="state"><div class="spinner"></div>Завантаження даних…</div>';
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Помилка API');
+    allRows = data.rows || [];
+    customRange = customRange || defaultRange();
+    if (customRange) updateCalLabel();
+    document.getElementById('updatedAt').textContent =
+      'Оновлено: ' + new Date().toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    render();
+  } catch (err) {
+    content.innerHTML = '<div class="state error">Не вдалося завантажити дані.<br>' +
+      escapeHtml(String(err.message || err)) +
+      '<br><br>Перевір API_URL і чи задеплоєний Apps Script як Web App (доступ: Anyone).</div>';
+  }
+}
+
+/* ============================================================
+   РОЗРАХУНКИ
+   ============================================================ */
+function filterByPeriod(rows) {
+  if (!customRange) return rows;
+  return rows.filter(r => r.date >= customRange.from && r.date <= customRange.to);
+}
+
+function cpl(budget, targetLeads) {
+  return targetLeads > 0 ? budget / targetLeads : null;
+}
+
+function cplClass(v) {
+  if (v === null) return 'none';
+  if (v <= CONFIG.PRICE_SUPER) return 'super';
+  if (v <= CONFIG.PRICE_NORM) return 'good';
+  if (v <= CONFIG.PRICE_WARN) return 'warn';
+  return 'bad';
+}
+
+function cplLabel(v) {
+  return v === null ? '—' : fmtMoney(v);
+}
+
+// Score за ціну: 100 при ≤260, лінійно до 0 при ≥700
+function priceScore(v) {
+  if (v === null) return 0;
+  if (v <= CONFIG.PRICE_SUPER) return 100;
+  if (v >= CONFIG.PRICE_ZERO) return 0;
+  return 100 * (CONFIG.PRICE_ZERO - v) / (CONFIG.PRICE_ZERO - CONFIG.PRICE_SUPER);
+}
+
+function buildRating(rows) {
+  const byOwner = {};
+  rows.forEach(r => {
+    const o = byOwner[r.owner] || (byOwner[r.owner] = { owner: r.owner, budget: 0, leads: 0, targetLeads: 0, videos: 0 });
+    o.budget += r.budget;
+    o.leads += r.leads;
+    o.targetLeads += r.targetLeads;
+    o.videos++;
+  });
+
+  const list = Object.values(byOwner);
+  const maxTL = Math.max(1, ...list.map(o => o.targetLeads));
+
+  list.forEach(o => {
+    o.cpl = cpl(o.budget, o.targetLeads);
+    o.conv = o.leads > 0 ? (o.targetLeads / o.leads) * 100 : null;
+    const pScore = priceScore(o.cpl);
+    const vScore = (o.targetLeads / maxTL) * 100;
+    o.score = Math.round(pScore * CONFIG.WEIGHT_PRICE + vScore * CONFIG.WEIGHT_VOLUME);
+  });
+
+  list.sort((a, b) => b.score - a.score || (a.cpl ?? Infinity) - (b.cpl ?? Infinity));
+  return list;
+}
+
+/* ============================================================
+   РЕНДЕР
+   ============================================================ */
+function render() {
+  const rows = filterByPeriod(allRows);
+  const content = document.getElementById('content');
+
+  if (!rows.length) {
+    content.innerHTML = '<div class="state">За цей період даних немає.<br>Додай рядки в Google Таблицю або обери інший період.</div>';
+    return;
+  }
+
+  const totalBudget = rows.reduce((s, r) => s + r.budget, 0);
+  const totalLeads = rows.reduce((s, r) => s + r.leads, 0);
+  const totalTL = rows.reduce((s, r) => s + r.targetLeads, 0);
+  const avgCpl = cpl(totalBudget, totalTL);
+
+  const rating = buildRating(rows);
+  const medals = ['🥇', '🥈', '🥉'];
+
+  let html = `
+    <div class="summary">
+      <div class="stat"><div class="label">Бюджет за період</div><div class="value">${fmtMoney(totalBudget)} <small>грн</small></div></div>
+      <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div></div>
+      <div class="stat"><div class="label">Цільові ліди</div><div class="value">${fmtInt(totalTL)}</div></div>
+      <div class="stat"><div class="label">Середня ціна ЦЛ</div><div class="value ${'cpl-' + cplClass(avgCpl)}">${cplLabel(avgCpl)} <small>грн</small></div></div>
+    </div>
+
+    <div class="section-title">
+      <h2>Рейтинг команди</h2>
+      <span class="norm-legend"><span class="dot"></span>норма: ${CONFIG.PRICE_SUPER}–${CONFIG.PRICE_NORM} грн / ЦЛ</span>
+    </div>
+    <div class="rating">`;
+
+  rating.forEach((o, i) => {
+    html += `
+      <div class="r-card ${i === 0 ? 'top' : ''}">
+        <div class="r-rank">${i < 3 ? '<span class="medal">' + medals[i] + '</span>' : (i + 1)}</div>
+        <div class="r-name">${escapeHtml(o.owner)}<span class="videos">${o.videos} відео · ${fmtMoney(o.budget)} грн</span></div>
+        <div class="r-metric"><div class="m-label">Ціна ЦЛ</div><div class="m-value ${'cpl-' + cplClass(o.cpl)}">${cplLabel(o.cpl)}</div></div>
+        <div class="r-metric"><div class="m-label">Цільові ліди</div><div class="m-value">${fmtInt(o.targetLeads)}</div></div>
+        <div class="r-metric"><div class="m-label">Ліди</div><div class="m-value">${fmtInt(o.leads)}</div></div>
+        <div class="r-metric"><div class="m-label">Конверсія в ЦЛ</div><div class="m-value">${o.conv === null ? '—' : o.conv.toFixed(0) + '%'}</div></div>
+        <div class="r-score">
+          <div class="s-top"><span>Score</span><b>${o.score}</b></div>
+          <div class="score-bar"><div class="score-fill" style="width:${o.score}%"></div></div>
+        </div>
+      </div>`;
+  });
+
+  html += `</div>
+
+    <div class="section-title">
+      <h2>Всі відео</h2>
+      <span class="hint">${rows.length} записів · сортування за ціною ЦЛ</span>
+    </div>
+    <div class="table-card"><div class="table-scroll"><table>
+      <thead><tr>
+        <th>Дата</th><th>Відповідальний</th><th>Відео</th>
+        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Конверсія</th><th>Ціна ЦЛ</th>
+      </tr></thead><tbody>`;
+
+  const sorted = [...rows].map(r => ({ ...r, _cpl: cpl(r.budget, r.targetLeads) }))
+    .sort((a, b) => (a._cpl ?? Infinity) - (b._cpl ?? Infinity));
+
+  sorted.forEach(r => {
+    const conv = r.leads > 0 ? ((r.targetLeads / r.leads) * 100).toFixed(0) + '%' : '—';
+    html += `
+      <tr>
+        <td class="num">${escapeHtml(fmtDate(r.date))}</td>
+        <td><span class="owner">${escapeHtml(r.owner)}</span></td>
+        <td>${r.link ? '<a class="video-link" href="' + escapeAttr(r.link) + '" target="_blank" rel="noopener">Відкрити ↗</a>' : '—'}</td>
+        <td class="num">${fmtMoney(r.budget)}</td>
+        <td class="num">${fmtInt(r.leads)}</td>
+        <td class="num">${fmtInt(r.targetLeads)}</td>
+        <td class="num">${conv}</td>
+        <td><span class="badge ${cplClass(r._cpl)}">${cplLabel(r._cpl)}${r._cpl !== null ? ' грн' : ''}</span></td>
+      </tr>`;
+  });
+
+  html += `</tbody></table></div></div>`;
+  content.innerHTML = html;
+}
+
+/* ============================================================
+   ФОРМАТУВАННЯ / ХЕЛПЕРИ
+   ============================================================ */
+function fmtMoney(v) { return Math.round(v).toLocaleString('uk-UA'); }
+function fmtInt(v) { return Number(v).toLocaleString('uk-UA'); }
+function fmtDate(s) {
+  const d = new Date(s);
+  return isNaN(d) ? s : d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+/* ============================================================
+   КАЛЕНДАР
+   ============================================================ */
+const MONTHS_UA = ['січень','лютий','березень','квітень','травень','червень',
+                   'липень','серпень','вересень','жовтень','листопад','грудень'];
+const WEEKDAYS_UA = ['пн','вт','ср','чт','пт','сб','нд'];
+
+function availableDates() {
+  return new Set(allRows.map(r => r.date).filter(Boolean));
+}
+
+function isoOf(y, m, d) {
+  return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+}
+
+function openCalendar() {
+  const avail = availableDates();
+  if (!calMonth) {
+    // стартуємо з місяця останньої наявної дати
+    const last = [...avail].sort().pop();
+    const d = last ? new Date(last) : new Date();
+    calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  }
+  renderCalendar();
+  document.getElementById('calPanel').classList.add('open');
+}
+
+function closeCalendar() {
+  document.getElementById('calPanel').classList.remove('open');
+}
+
+function monthBounds() {
+  const dates = [...availableDates()].sort();
+  if (!dates.length) return null;
+  const first = new Date(dates[0]);
+  const last = new Date(dates[dates.length - 1]);
+  return {
+    min: new Date(first.getFullYear(), first.getMonth(), 1),
+    max: new Date(last.getFullYear(), last.getMonth(), 1)
+  };
+}
+
+function renderCalendar() {
+  const avail = availableDates();
+  const y = calMonth.getFullYear(), m = calMonth.getMonth();
+  document.getElementById('calTitle').textContent = MONTHS_UA[m] + ' ' + y;
+
+  const bounds = monthBounds();
+  document.getElementById('calPrev').disabled = bounds ? calMonth <= bounds.min : false;
+  document.getElementById('calNext').disabled = bounds ? calMonth >= bounds.max : false;
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = WEEKDAYS_UA.map(w => '<div class="cal-wd">' + w + '</div>').join('');
+
+  const firstIdx = (new Date(y, m, 1).getDay() + 6) % 7; // пн = 0
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  for (let i = 0; i < firstIdx; i++) grid.insertAdjacentHTML('beforeend', '<div class="cal-day"></div>');
+
+  const rFrom = customRange ? customRange.from : null;
+  const rTo = customRange ? customRange.to : null;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = isoOf(y, m, d);
+    const isAvail = avail.has(iso);
+    const cls = ['cal-day'];
+    if (isAvail) cls.push('avail');
+    if (iso === calPickStart || iso === rFrom || iso === rTo) cls.push('picked');
+    else if (rFrom && rTo && iso > rFrom && iso < rTo) cls.push('in-range');
+    grid.insertAdjacentHTML('beforeend',
+      '<button class="' + cls.join(' ') + '"' + (isAvail ? ' data-iso="' + iso + '"' : ' disabled') + '>' + d + '</button>');
+  }
+
+  document.getElementById('calHint').textContent = calPickStart
+    ? 'Тепер обери останню дату періоду'
+    : 'Обери першу дату періоду';
+}
+
+function pickDate(iso) {
+  if (!calPickStart) {
+    calPickStart = iso;
+    customRange = null;
+    renderCalendar();
+    return;
+  }
+  const from = calPickStart <= iso ? calPickStart : iso;
+  const to = calPickStart <= iso ? iso : calPickStart;
+  customRange = { from: from, to: to };
+  calPickStart = null;
+  applyCustomRange();
+  closeCalendar();
+}
+
+function updateCalLabel() {
+  const btn = document.getElementById('calBtn');
+  btn.classList.add('active');
+  document.getElementById('calLabel').textContent =
+    customRange.from === customRange.to
+      ? fmtDate(customRange.from)
+      : fmtDate(customRange.from) + ' — ' + fmtDate(customRange.to);
+}
+
+function applyCustomRange() {
+  updateCalLabel();
+  render();
+}
+
+function clearCustomRange() {
+  calPickStart = null;
+  customRange = defaultRange(); // повертаємось до останніх 2 днів
+  if (customRange) updateCalLabel();
+  closeCalendar();
+  render();
+}
+
+document.getElementById('calBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  const panel = document.getElementById('calPanel');
+  panel.classList.contains('open') ? closeCalendar() : openCalendar();
+});
+document.getElementById('calPanel').addEventListener('click', e => e.stopPropagation());
+document.addEventListener('click', closeCalendar);
+document.getElementById('calPrev').addEventListener('click', () => {
+  calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1);
+  renderCalendar();
+});
+document.getElementById('calNext').addEventListener('click', () => {
+  calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1);
+  renderCalendar();
+});
+document.getElementById('calGrid').addEventListener('click', e => {
+  const btn = e.target.closest('.cal-day.avail');
+  if (btn && btn.dataset.iso) pickDate(btn.dataset.iso);
+});
+document.getElementById('calClear').addEventListener('click', clearCustomRange);
+
+/* ============================================================
+   ПОДІЇ
+   ============================================================ */
+document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+// ===== Telegram Mini App: розгортання на весь екран =====
+if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData !== undefined) {
+  try {
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+    Telegram.WebApp.setHeaderColor('#0B0F14');
+    Telegram.WebApp.setBackgroundColor('#0B0F14');
+  } catch (e) { /* поза Telegram — ігноруємо */ }
+}
+
+loadData();
+</script>
+</body>
+</html>
