@@ -168,6 +168,33 @@
   }
   .norm-legend .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
 
+  /* ===== Найкраще відео періоду ===== */
+  .best-card {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    background: linear-gradient(90deg, rgba(0,212,170,0.12), var(--card) 60%);
+    border: 1px solid rgba(0,212,170,0.35);
+    border-radius: var(--radius); padding: 16px 20px;
+    margin-bottom: 24px; backdrop-filter: blur(12px);
+  }
+  .best-card .crown { font-size: 30px; line-height: 1; }
+  .best-card .b-info { flex: 1; min-width: 200px; }
+  .best-card .b-eyebrow {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 4px;
+  }
+  .best-card .b-name { font-weight: 800; font-size: 16px; }
+  .best-card .b-name a { color: var(--text); text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.3); }
+  .best-card .b-name a:hover { border-bottom-color: var(--accent); color: var(--accent); }
+  .best-card .b-owner { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+  .best-card .b-metrics { display: flex; gap: 22px; }
+  .best-card .b-metric .m-label { font-size: 11px; color: var(--text-faint); font-weight: 600; margin-bottom: 3px; }
+  .best-card .b-metric .m-value { font-family: 'DM Mono', monospace; font-size: 18px; }
+
+  td .video-name { font-weight: 600; }
+  td .crown-mark { margin-right: 5px; }
+  tr.best-row td { background: rgba(0,212,170,0.05); }
+
   /* ===== Rating cards ===== */
   .rating { display: flex; flex-direction: column; gap: 10px; margin-bottom: 36px; }
   .r-card {
@@ -424,6 +451,20 @@ function buildRating(rows) {
   return list;
 }
 
+// Найкраще відео періоду: найнижча ціна ЦЛ (при рівності — більше ЦЛ)
+function findBestVideo(rows) {
+  const withCpl = rows
+    .map(r => ({ ...r, _cpl: cpl(r.budget, r.targetLeads) }))
+    .filter(r => r._cpl !== null);
+  if (!withCpl.length) return null;
+  withCpl.sort((a, b) => a._cpl - b._cpl || b.targetLeads - a.targetLeads);
+  return withCpl[0];
+}
+
+function videoTitle(r) {
+  return r.name || 'Відео без назви';
+}
+
 /* ============================================================
    РЕНДЕР
    ============================================================ */
@@ -442,6 +483,7 @@ function render() {
   const avgCpl = cpl(totalBudget, totalTL);
 
   const rating = buildRating(rows);
+  const best = findBestVideo(rows);
   const medals = ['🥇', '🥈', '🥉'];
 
   let html = `
@@ -450,8 +492,29 @@ function render() {
       <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div></div>
       <div class="stat"><div class="label">Цільові ліди</div><div class="value">${fmtInt(totalTL)}</div></div>
       <div class="stat"><div class="label">Середня ціна ЦЛ</div><div class="value ${'cpl-' + cplClass(avgCpl)}">${cplLabel(avgCpl)} <small>грн</small></div></div>
-    </div>
+    </div>`;
 
+  if (best) {
+    const nameHtml = best.link
+      ? '<a href="' + escapeAttr(best.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(best)) + '</a>'
+      : escapeHtml(videoTitle(best));
+    html += `
+    <div class="best-card">
+      <div class="crown">👑</div>
+      <div class="b-info">
+        <div class="b-eyebrow">Відео періоду</div>
+        <div class="b-name">${nameHtml}</div>
+        <div class="b-owner">${escapeHtml(best.owner)} · ${escapeHtml(fmtDate(best.date))}</div>
+      </div>
+      <div class="b-metrics">
+        <div class="b-metric"><div class="m-label">Ціна ЦЛ</div><div class="m-value ${'cpl-' + cplClass(best._cpl)}">${cplLabel(best._cpl)} грн</div></div>
+        <div class="b-metric"><div class="m-label">ЦЛ</div><div class="m-value">${fmtInt(best.targetLeads)}</div></div>
+        <div class="b-metric"><div class="m-label">Бюджет</div><div class="m-value">${fmtMoney(best.budget)} грн</div></div>
+      </div>
+    </div>`;
+  }
+
+  html += `
     <div class="section-title">
       <h2>Рейтинг команди</h2>
       <span class="norm-legend"><span class="dot"></span>норма: ${CONFIG.PRICE_SUPER}–${CONFIG.PRICE_NORM} грн / ЦЛ</span>
@@ -491,11 +554,17 @@ function render() {
 
   sorted.forEach(r => {
     const conv = r.leads > 0 ? ((r.targetLeads / r.leads) * 100).toFixed(0) + '%' : '—';
+    const isBest = best && r.owner === best.owner && r.link === best.link &&
+                   r.date === best.date && r.budget === best.budget;
+    const crown = isBest ? '<span class="crown-mark">👑</span>' : '';
+    const nameCell = r.link
+      ? crown + '<a class="video-link video-name" href="' + escapeAttr(r.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(r)) + ' ↗</a>'
+      : crown + '<span class="video-name">' + escapeHtml(videoTitle(r)) + '</span>';
     html += `
-      <tr>
+      <tr${isBest ? ' class="best-row"' : ''}>
         <td class="num">${escapeHtml(fmtDate(r.date))}</td>
         <td><span class="owner">${escapeHtml(r.owner)}</span></td>
-        <td>${r.link ? '<a class="video-link" href="' + escapeAttr(r.link) + '" target="_blank" rel="noopener">Відкрити ↗</a>' : '—'}</td>
+        <td>${nameCell}</td>
         <td class="num">${fmtMoney(r.budget)}</td>
         <td class="num">${fmtInt(r.leads)}</td>
         <td class="num">${fmtInt(r.targetLeads)}</td>
