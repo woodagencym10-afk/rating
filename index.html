@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #0B0F14;
@@ -151,6 +152,28 @@
   .stat .label { font-size: 12px; color: var(--text-dim); font-weight: 600; margin-bottom: 6px; }
   .stat .value { font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 500; }
   .stat .value small { font-size: 13px; color: var(--text-faint); }
+  .stat .delta {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-family: 'DM Mono', monospace; font-size: 11.5px; font-weight: 500;
+    margin-top: 6px; padding: 2px 8px; border-radius: 999px;
+  }
+  .delta.d-good { background: rgba(74,222,128,0.1); color: var(--good); }
+  .delta.d-bad { background: rgba(248,113,113,0.1); color: var(--bad); }
+  .delta.d-neutral { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+
+  /* ===== Графік динаміки ===== */
+  .chart-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 18px 20px;
+    backdrop-filter: blur(12px); margin-bottom: 32px;
+  }
+  .chart-head {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .chart-head h2 { font-size: 17px; font-weight: 700; }
+  .chart-box { position: relative; height: 300px; }
+  @media (max-width: 600px) { .chart-box { height: 240px; } }
 
   /* ===== Section titles ===== */
   .section-title {
@@ -501,7 +524,11 @@ function buildRating(rows) {
 }
 
 let tableMode = 'videos'; // 'videos' — згруповано по відео, 'entries' — всі записи
+let chartMode = 'total';  // 'total' | 'owners' | 'videos'
+let chartInstance = null;
 const expandedKeys = new Set(); // які відео розгорнуті по днях
+
+const CHART_COLORS = ['#00D4AA', '#818CF8', '#FBBF24', '#F472B6', '#38BDF8', '#A3E635', '#FB923C', '#F87171'];
 
 const WD_SHORT = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 function weekdayOf(iso) {
@@ -556,6 +583,162 @@ function dateRangeLabel(v) {
     : fmtDate(v.dateFrom) + '–' + fmtDate(v.dateTo);
 }
 
+/* ============================================================
+   ПОРІВНЯННЯ З ПОПЕРЕДНІМ ПЕРІОДОМ
+   ============================================================ */
+function shiftIso(iso, days) {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Попередній період тієї ж довжини впритул до поточного
+function prevPeriodRows() {
+  if (!customRange) return [];
+  const len = Math.round((new Date(customRange.to) - new Date(customRange.from)) / 86400000) + 1;
+  const prevTo = shiftIso(customRange.from, -1);
+  const prevFrom = shiftIso(customRange.from, -len);
+  return allRows.filter(r => r.date >= prevFrom && r.date <= prevTo);
+}
+
+function totalsOf(rows) {
+  const budget = rows.reduce((s, r) => s + r.budget, 0);
+  const leads = rows.reduce((s, r) => s + r.leads, 0);
+  const tl = rows.reduce((s, r) => s + r.targetLeads, 0);
+  return { budget, leads, tl, cpl: cpl(budget, tl) };
+}
+
+// betterWhen: 'up' — ріст це добре, 'down' — падіння це добре, 'neutral'
+function deltaPill(cur, prev, betterWhen) {
+  if (prev === null || prev === undefined || prev === 0 || cur === null) return '';
+  const pct = ((cur - prev) / prev) * 100;
+  if (!isFinite(pct)) return '';
+  const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '·';
+  let cls = 'd-neutral';
+  if (betterWhen === 'up') cls = pct > 0 ? 'd-good' : pct < 0 ? 'd-bad' : 'd-neutral';
+  if (betterWhen === 'down') cls = pct < 0 ? 'd-good' : pct > 0 ? 'd-bad' : 'd-neutral';
+  return '<span class="delta ' + cls + '">' + arrow + ' ' + Math.abs(pct).toFixed(0) + '% vs попер.</span>';
+}
+
+/* ============================================================
+   ДИНАМІКА ЦІНИ ЦЛ
+   ============================================================ */
+// Список усіх дат періоду (включно з порожніми днями)
+function periodDates(rows) {
+  const ds = [...new Set(rows.map(r => r.date).filter(Boolean))].sort();
+  return ds;
+}
+
+// Серії CPL по днях: keyFn групує (null — все разом), labelFn підписує
+function buildSeries(rows, keyFn, labelFn) {
+  const dates = periodDates(rows);
+  const groups = {};
+  rows.forEach(r => {
+    const k = keyFn ? keyFn(r) : '_total';
+    const g = groups[k] || (groups[k] = { label: labelFn ? labelFn(r) : 'Всі відео', byDate: {} });
+    const d = g.byDate[r.date] || (g.byDate[r.date] = { budget: 0, tl: 0 });
+    d.budget += r.budget;
+    d.tl += r.targetLeads;
+  });
+  const series = Object.values(groups).map(g => ({
+    label: g.label,
+    data: dates.map(dt => {
+      const d = g.byDate[dt];
+      return d && d.tl > 0 ? Math.round(d.budget / d.tl) : null;
+    }),
+    total: Object.values(g.byDate).reduce((s, d) => s + d.tl, 0)
+  }));
+  return { dates, series };
+}
+
+function truncLabel(s, n) {
+  s = s || 'Без назви';
+  return s.length > n ? s.slice(0, n - 1) + '…' : s;
+}
+
+function buildChart(rows) {
+  const canvas = document.getElementById('cplChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  let result;
+  if (chartMode === 'owners') {
+    result = buildSeries(rows, r => r.owner, r => r.owner);
+  } else if (chartMode === 'videos') {
+    result = buildSeries(rows, r => vidKey(r), r => truncLabel(videoTitle(r), 20));
+    result.series.sort((a, b) => b.total - a.total);
+    result.series = result.series.slice(0, 6); // топ-6 відео за ЦЛ, щоб не було каші
+  } else {
+    result = buildSeries(rows, null, null);
+  }
+
+  const labels = result.dates.map(d => weekdayOf(d) + ' ' + fmtDate(d));
+  const datasets = result.series.map((s, i) => ({
+    label: s.label,
+    data: s.data,
+    borderColor: CHART_COLORS[i % CHART_COLORS.length],
+    backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+    tension: 0.35,
+    spanGaps: true,
+    pointRadius: 3.5,
+    pointHoverRadius: 5,
+    borderWidth: 2
+  }));
+
+  // Коридор норми 260–350 грн
+  const normLine = val => ({
+    label: '_norm', data: result.dates.map(() => val),
+    borderColor: 'rgba(74,222,128,0.35)', borderDash: [6, 6],
+    pointRadius: 0, borderWidth: 1, fill: false
+  });
+  datasets.push(normLine(CONFIG.PRICE_SUPER), normLine(CONFIG.PRICE_NORM));
+
+  chartInstance = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: chartMode !== 'total',
+          labels: {
+            color: '#8B99A5',
+            font: { family: 'Manrope', size: 11, weight: 600 },
+            boxWidth: 10, boxHeight: 10, usePointStyle: true,
+            filter: item => !item.text.startsWith('_')
+          }
+        },
+        tooltip: {
+          backgroundColor: '#121820',
+          borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+          titleColor: '#EDF2F1', bodyColor: '#8B99A5',
+          titleFont: { family: 'Manrope' }, bodyFont: { family: 'DM Mono' },
+          filter: item => !item.dataset.label.startsWith('_'),
+          callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + ctx.formattedValue + ' грн' }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#5A6772', font: { family: 'DM Mono', size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        },
+        y: {
+          ticks: { color: '#5A6772', font: { family: 'DM Mono', size: 10 }, callback: v => v + ' грн' },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+function setChartMode(mode) {
+  chartMode = mode;
+  render();
+}
+
 // Найкраще відео періоду: той самий принцип, що й рейтинг команди —
 // score з ціни ЦЛ (вага 60%) і кількості ЦЛ (вага 40%).
 // До участі допускаються відео з ЦЛ >= BEST_MIN_TL; якщо таких немає — всі з ЦЛ > 0.
@@ -603,13 +786,14 @@ function render() {
   const videos = aggregateVideos(rows);
   const best = findBestVideo(videos);
   const medals = ['🥇', '🥈', '🥉'];
+  const prev = totalsOf(prevPeriodRows());
 
   let html = `
     <div class="summary">
-      <div class="stat"><div class="label">Бюджет за період</div><div class="value">${fmtMoney(totalBudget)} <small>грн</small></div></div>
-      <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div></div>
-      <div class="stat"><div class="label">Цільові ліди</div><div class="value">${fmtInt(totalTL)}</div></div>
-      <div class="stat"><div class="label">Середня ціна ЦЛ</div><div class="value ${'cpl-' + cplClass(avgCpl)}">${cplLabel(avgCpl)} <small>грн</small></div></div>
+      <div class="stat"><div class="label">Бюджет за період</div><div class="value">${fmtMoney(totalBudget)} <small>грн</small></div>${deltaPill(totalBudget, prev.budget, 'neutral')}</div>
+      <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div>${deltaPill(totalLeads, prev.leads, 'up')}</div>
+      <div class="stat"><div class="label">Цільові ліди</div><div class="value">${fmtInt(totalTL)}</div>${deltaPill(totalTL, prev.tl, 'up')}</div>
+      <div class="stat"><div class="label">Середня ціна ЦЛ</div><div class="value ${'cpl-' + cplClass(avgCpl)}">${cplLabel(avgCpl)} <small>грн</small></div>${deltaPill(avgCpl, prev.cpl, 'down')}</div>
     </div>`;
 
   if (best) {
@@ -633,6 +817,18 @@ function render() {
   }
 
   html += `
+    <div class="chart-card">
+      <div class="chart-head">
+        <h2>Динаміка ціни ЦЛ</h2>
+        <span class="mode-toggle">
+          <button class="${chartMode === 'total' ? 'on' : ''}" onclick="setChartMode('total')">Загальна</button>
+          <button class="${chartMode === 'owners' ? 'on' : ''}" onclick="setChartMode('owners')">По людях</button>
+          <button class="${chartMode === 'videos' ? 'on' : ''}" onclick="setChartMode('videos')">По відео</button>
+        </span>
+      </div>
+      <div class="chart-box"><canvas id="cplChart"></canvas></div>
+    </div>
+
     <div class="section-title">
       <h2>Рейтинг команди</h2>
       <span class="norm-legend"><span class="dot"></span>норма: ${CONFIG.PRICE_SUPER}–${CONFIG.PRICE_NORM} грн / ЦЛ</span>
@@ -734,6 +930,7 @@ function render() {
 
   html += `</tbody></table></div></div>`;
   content.innerHTML = html;
+  buildChart(rows);
 }
 
 function setTableMode(mode) {
