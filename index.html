@@ -353,7 +353,8 @@ const CONFIG = {
   PRICE_WARN:  450,   // 350–450 грн — дорого
   PRICE_ZERO:  700,   // при ціні ≥ 700 грн score за ціну = 0
   WEIGHT_PRICE:  0.6, // вага ціни ЦЛ у рейтингу
-  WEIGHT_VOLUME: 0.4  // вага кількості ЦЛ у рейтингу
+  WEIGHT_VOLUME: 0.4, // вага кількості ЦЛ у рейтингу
+  BEST_MIN_TL:   3    // мінімум ЦЛ, щоб відео могло стати "Відео періоду"
 };
 
 let allRows = [];
@@ -451,14 +452,26 @@ function buildRating(rows) {
   return list;
 }
 
-// Найкраще відео періоду: найнижча ціна ЦЛ (при рівності — більше ЦЛ)
+// Найкраще відео періоду: той самий принцип, що й рейтинг команди —
+// score з ціни ЦЛ (вага 60%) і кількості ЦЛ (вага 40%).
+// До участі допускаються відео з ЦЛ >= BEST_MIN_TL; якщо таких немає — всі з ЦЛ > 0.
 function findBestVideo(rows) {
-  const withCpl = rows
+  let candidates = rows
     .map(r => ({ ...r, _cpl: cpl(r.budget, r.targetLeads) }))
     .filter(r => r._cpl !== null);
-  if (!withCpl.length) return null;
-  withCpl.sort((a, b) => a._cpl - b._cpl || b.targetLeads - a.targetLeads);
-  return withCpl[0];
+  if (!candidates.length) return null;
+
+  const qualified = candidates.filter(r => r.targetLeads >= CONFIG.BEST_MIN_TL);
+  if (qualified.length) candidates = qualified;
+
+  const maxTL = Math.max(1, ...candidates.map(r => r.targetLeads));
+  candidates.forEach(r => {
+    r._score = priceScore(r._cpl) * CONFIG.WEIGHT_PRICE +
+               (r.targetLeads / maxTL) * 100 * CONFIG.WEIGHT_VOLUME;
+  });
+
+  candidates.sort((a, b) => b._score - a._score || a._cpl - b._cpl);
+  return candidates[0];
 }
 
 function videoTitle(r) {
