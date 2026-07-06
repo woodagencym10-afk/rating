@@ -194,6 +194,53 @@
   td .video-name { font-weight: 600; }
   td .crown-mark { margin-right: 5px; }
   tr.best-row td { background: rgba(0,212,170,0.05); }
+  td .sub { display: block; font-size: 11px; color: var(--text-faint); font-weight: 500; margin-top: 2px; }
+
+  .mode-toggle {
+    display: inline-flex; margin-left: auto;
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 999px; padding: 3px; gap: 2px;
+  }
+  .mode-toggle button {
+    font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 700;
+    background: none; border: none; color: var(--text-dim);
+    padding: 6px 14px; border-radius: 999px; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .mode-toggle button.on { background: var(--accent-dim); color: var(--accent); }
+
+  /* ===== Розгортання по днях ===== */
+  .expand-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600; color: var(--text-faint);
+    cursor: pointer; margin-top: 4px; user-select: none;
+    transition: color 0.15s ease;
+  }
+  .expand-toggle:hover { color: var(--accent); }
+  tr.detail-row > td {
+    background: rgba(0, 0, 0, 0.25) !important;
+    padding: 6px 16px 14px 16px;
+  }
+  .day-table { width: 100%; border-collapse: collapse; }
+  .day-table td {
+    padding: 8px 12px; font-size: 12.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    background: transparent !important;
+  }
+  .day-table tr:last-child td { border-bottom: none; }
+  .day-table .wd {
+    font-family: 'DM Mono', monospace; text-transform: uppercase;
+    color: var(--text-faint); font-size: 11px; width: 34px;
+  }
+  .day-table tr.hl-leads td { background: rgba(251,191,36,0.06) !important; }
+  .day-table tr.hl-conv td { background: rgba(0,212,170,0.06) !important; }
+  .day-table tr.hl-leads.hl-conv td { background: rgba(74,222,128,0.08) !important; }
+  .day-flag {
+    display: inline-block; font-size: 10.5px; font-weight: 700;
+    padding: 2px 8px; border-radius: 999px; margin-left: 6px; white-space: nowrap;
+  }
+  .day-flag.f-leads { background: rgba(251,191,36,0.14); color: var(--warn); }
+  .day-flag.f-conv { background: rgba(0,212,170,0.14); color: var(--accent); }
 
   /* ===== Rating cards ===== */
   .rating { display: flex; flex-direction: column; gap: 10px; margin-bottom: 36px; }
@@ -354,7 +401,7 @@ const CONFIG = {
   PRICE_ZERO:  700,   // при ціні ≥ 700 грн score за ціну = 0
   WEIGHT_PRICE:  0.6, // вага ціни ЦЛ у рейтингу
   WEIGHT_VOLUME: 0.4, // вага кількості ЦЛ у рейтингу
-  BEST_MIN_TL:   5    // мінімум ЦЛ, щоб відео могло стати "Відео періоду"
+  BEST_MIN_TL:   3    // мінімум ЦЛ, щоб відео могло стати "Відео періоду"
 };
 
 let allRows = [];
@@ -430,14 +477,15 @@ function priceScore(v) {
 function buildRating(rows) {
   const byOwner = {};
   rows.forEach(r => {
-    const o = byOwner[r.owner] || (byOwner[r.owner] = { owner: r.owner, budget: 0, leads: 0, targetLeads: 0, videos: 0 });
+    const o = byOwner[r.owner] || (byOwner[r.owner] = { owner: r.owner, budget: 0, leads: 0, targetLeads: 0, vidKeys: new Set() });
     o.budget += r.budget;
     o.leads += r.leads;
     o.targetLeads += r.targetLeads;
-    o.videos++;
+    o.vidKeys.add(vidKey(r));
   });
 
   const list = Object.values(byOwner);
+  list.forEach(o => { o.videos = o.vidKeys.size; });
   const maxTL = Math.max(1, ...list.map(o => o.targetLeads));
 
   list.forEach(o => {
@@ -450,6 +498,62 @@ function buildRating(rows) {
 
   list.sort((a, b) => b.score - a.score || (a.cpl ?? Infinity) - (b.cpl ?? Infinity));
   return list;
+}
+
+let tableMode = 'videos'; // 'videos' — згруповано по відео, 'entries' — всі записи
+const expandedKeys = new Set(); // які відео розгорнуті по днях
+
+const WD_SHORT = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+function weekdayOf(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : WD_SHORT[d.getDay()];
+}
+
+// Ключ відео: посилання (унікальний ідентифікатор), якщо нема — автор + назва
+function vidKey(r) {
+  const link = (r.link || '').trim().toLowerCase();
+  if (link) return 'L:' + link;
+  return 'N:' + r.owner.trim().toLowerCase() + '|' + (r.name || '').trim().toLowerCase();
+}
+
+// Групуємо записи (щоденні/за 3 дні) в одне відео з сумарними показниками
+function aggregateVideos(rows) {
+  const map = {};
+  rows.forEach(r => {
+    const k = vidKey(r);
+    const v = map[k] || (map[k] = {
+      key: k, owner: r.owner, name: r.name || '', link: r.link || '',
+      budget: 0, leads: 0, targetLeads: 0, entries: 0, dates: [], entryRows: []
+    });
+    if (!v.name && r.name) v.name = r.name;
+    if (!v.link && r.link) v.link = r.link;
+    v.budget += r.budget;
+    v.leads += r.leads;
+    v.targetLeads += r.targetLeads;
+    v.entries++;
+    v.entryRows.push(r);
+    if (r.date) v.dates.push(r.date);
+  });
+  return Object.values(map).map(v => {
+    v.dates.sort();
+    v.dateFrom = v.dates[0] || '';
+    v.dateTo = v.dates[v.dates.length - 1] || '';
+    return v;
+  });
+}
+
+function pluralZapys(n) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return 'запис';
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'записи';
+  return 'записів';
+}
+
+function dateRangeLabel(v) {
+  if (!v.dateFrom) return '';
+  return v.dateFrom === v.dateTo
+    ? fmtDate(v.dateFrom)
+    : fmtDate(v.dateFrom) + '–' + fmtDate(v.dateTo);
 }
 
 // Найкраще відео періоду: той самий принцип, що й рейтинг команди —
@@ -496,7 +600,8 @@ function render() {
   const avgCpl = cpl(totalBudget, totalTL);
 
   const rating = buildRating(rows);
-  const best = findBestVideo(rows);
+  const videos = aggregateVideos(rows);
+  const best = findBestVideo(videos);
   const medals = ['🥇', '🥈', '🥉'];
 
   let html = `
@@ -517,7 +622,7 @@ function render() {
       <div class="b-info">
         <div class="b-eyebrow">Відео періоду</div>
         <div class="b-name">${nameHtml}</div>
-        <div class="b-owner">${escapeHtml(best.owner)} · ${escapeHtml(fmtDate(best.date))}</div>
+        <div class="b-owner">${escapeHtml(best.owner)} · ${escapeHtml(dateRangeLabel(best))} · ${best.entries} ${pluralZapys(best.entries)}</div>
       </div>
       <div class="b-metrics">
         <div class="b-metric"><div class="m-label">Ціна ЦЛ</div><div class="m-value ${'cpl-' + cplClass(best._cpl)}">${cplLabel(best._cpl)} грн</div></div>
@@ -553,41 +658,125 @@ function render() {
   html += `</div>
 
     <div class="section-title">
-      <h2>Всі відео</h2>
-      <span class="hint">${rows.length} записів · сортування за ціною ЦЛ</span>
+      <h2>${tableMode === 'videos' ? 'Рейтинг відео' : 'Всі записи'}</h2>
+      <span class="hint">${tableMode === 'videos'
+        ? videos.length + ' відео · ' + rows.length + ' ' + pluralZapys(rows.length) + ' · сортування за ціною ЦЛ'
+        : rows.length + ' ' + pluralZapys(rows.length) + ' · сортування за ціною ЦЛ'}</span>
+      <span class="mode-toggle">
+        <button class="${tableMode === 'videos' ? 'on' : ''}" onclick="setTableMode('videos')">По відео</button>
+        <button class="${tableMode === 'entries' ? 'on' : ''}" onclick="setTableMode('entries')">Записи</button>
+      </span>
     </div>
-    <div class="table-card"><div class="table-scroll"><table>
+    <div class="table-card"><div class="table-scroll"><table>`;
+
+  if (tableMode === 'videos') {
+    html += `
+      <thead><tr>
+        <th>Період</th><th>Відповідальний</th><th>Відео</th>
+        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Конверсія</th><th>Ціна ЦЛ</th>
+      </tr></thead><tbody>`;
+
+    const sortedV = videos.map(v => ({ ...v, _cpl: cpl(v.budget, v.targetLeads) }))
+      .sort((a, b) => (a._cpl ?? Infinity) - (b._cpl ?? Infinity));
+
+    sortedV.forEach(v => {
+      const conv = v.leads > 0 ? ((v.targetLeads / v.leads) * 100).toFixed(0) + '%' : '—';
+      const isBest = best && v.key === best.key;
+      const isOpen = expandedKeys.has(v.key);
+      const crown = isBest ? '<span class="crown-mark">👑</span>' : '';
+      const nameCell = v.link
+        ? crown + '<a class="video-link video-name" href="' + escapeAttr(v.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(v)) + ' ↗</a>'
+        : crown + '<span class="video-name">' + escapeHtml(videoTitle(v)) + '</span>';
+      const toggle = v.entries > 1
+        ? '<span class="expand-toggle" data-key="' + escapeAttr(v.key) + '">' + (isOpen ? '▴ згорнути' : '▾ розгорнути') + '</span>'
+        : '';
+      html += `
+        <tr${isBest ? ' class="best-row"' : ''}>
+          <td class="num">${escapeHtml(dateRangeLabel(v))}<span class="sub">${v.entries} ${pluralZapys(v.entries)}</span></td>
+          <td><span class="owner">${escapeHtml(v.owner)}</span></td>
+          <td>${nameCell}${toggle ? '<br>' + toggle : ''}</td>
+          <td class="num">${fmtMoney(v.budget)}</td>
+          <td class="num">${fmtInt(v.leads)}</td>
+          <td class="num">${fmtInt(v.targetLeads)}</td>
+          <td class="num">${conv}</td>
+          <td><span class="badge ${cplClass(v._cpl)}">${cplLabel(v._cpl)}${v._cpl !== null ? ' грн' : ''}</span></td>
+        </tr>`;
+      if (isOpen) html += renderDayDetails(v);
+    });
+  } else {
+    html += `
       <thead><tr>
         <th>Дата</th><th>Відповідальний</th><th>Відео</th>
         <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Конверсія</th><th>Ціна ЦЛ</th>
       </tr></thead><tbody>`;
 
-  const sorted = [...rows].map(r => ({ ...r, _cpl: cpl(r.budget, r.targetLeads) }))
-    .sort((a, b) => (a._cpl ?? Infinity) - (b._cpl ?? Infinity));
+    const sorted = [...rows].map(r => ({ ...r, _cpl: cpl(r.budget, r.targetLeads) }))
+      .sort((a, b) => (a._cpl ?? Infinity) - (b._cpl ?? Infinity));
 
-  sorted.forEach(r => {
-    const conv = r.leads > 0 ? ((r.targetLeads / r.leads) * 100).toFixed(0) + '%' : '—';
-    const isBest = best && r.owner === best.owner && r.link === best.link &&
-                   r.date === best.date && r.budget === best.budget;
-    const crown = isBest ? '<span class="crown-mark">👑</span>' : '';
-    const nameCell = r.link
-      ? crown + '<a class="video-link video-name" href="' + escapeAttr(r.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(r)) + ' ↗</a>'
-      : crown + '<span class="video-name">' + escapeHtml(videoTitle(r)) + '</span>';
-    html += `
-      <tr${isBest ? ' class="best-row"' : ''}>
-        <td class="num">${escapeHtml(fmtDate(r.date))}</td>
-        <td><span class="owner">${escapeHtml(r.owner)}</span></td>
-        <td>${nameCell}</td>
-        <td class="num">${fmtMoney(r.budget)}</td>
-        <td class="num">${fmtInt(r.leads)}</td>
-        <td class="num">${fmtInt(r.targetLeads)}</td>
-        <td class="num">${conv}</td>
-        <td><span class="badge ${cplClass(r._cpl)}">${cplLabel(r._cpl)}${r._cpl !== null ? ' грн' : ''}</span></td>
-      </tr>`;
-  });
+    sorted.forEach(r => {
+      const conv = r.leads > 0 ? ((r.targetLeads / r.leads) * 100).toFixed(0) + '%' : '—';
+      const nameCell = r.link
+        ? '<a class="video-link video-name" href="' + escapeAttr(r.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(r)) + ' ↗</a>'
+        : '<span class="video-name">' + escapeHtml(videoTitle(r)) + '</span>';
+      html += `
+        <tr>
+          <td class="num">${escapeHtml(fmtDate(r.date))}</td>
+          <td><span class="owner">${escapeHtml(r.owner)}</span></td>
+          <td>${nameCell}</td>
+          <td class="num">${fmtMoney(r.budget)}</td>
+          <td class="num">${fmtInt(r.leads)}</td>
+          <td class="num">${fmtInt(r.targetLeads)}</td>
+          <td class="num">${conv}</td>
+          <td><span class="badge ${cplClass(r._cpl)}">${cplLabel(r._cpl)}${r._cpl !== null ? ' грн' : ''}</span></td>
+        </tr>`;
+    });
+  }
 
   html += `</tbody></table></div></div>`;
   content.innerHTML = html;
+}
+
+function setTableMode(mode) {
+  tableMode = mode;
+  render();
+}
+
+// Деталізація відео по днях: 🔥 день з найбільшою к-стю лідів, 🎯 день з найвищою конверсією в ЦЛ
+function renderDayDetails(v) {
+  const days = [...v.entryRows].sort((a, b) => (a.date > b.date ? 1 : -1));
+
+  let maxLeads = -1, maxLeadsIdx = -1, maxConv = -1, maxConvIdx = -1;
+  days.forEach((d, i) => {
+    if (d.leads > 0 && d.leads > maxLeads) { maxLeads = d.leads; maxLeadsIdx = i; }
+    const c = d.leads > 0 ? d.targetLeads / d.leads : -1;
+    if (c > maxConv && d.targetLeads > 0) { maxConv = c; maxConvIdx = i; }
+  });
+
+  let inner = '<table class="day-table">';
+  days.forEach((d, i) => {
+    const dCpl = cpl(d.budget, d.targetLeads);
+    const dConv = d.leads > 0 ? ((d.targetLeads / d.leads) * 100).toFixed(0) + '%' : '—';
+    const isL = i === maxLeadsIdx && days.length > 1;
+    const isC = i === maxConvIdx && days.length > 1;
+    const flags =
+      (isL ? '<span class="day-flag f-leads">🔥 найбільше лідів</span>' : '') +
+      (isC ? '<span class="day-flag f-conv">🎯 найкраща конверсія</span>' : '');
+    const cls = (isL ? 'hl-leads ' : '') + (isC ? 'hl-conv' : '');
+    inner += `
+      <tr class="${cls.trim()}">
+        <td class="wd">${weekdayOf(d.date)}</td>
+        <td class="num">${escapeHtml(fmtDate(d.date))}</td>
+        <td class="num">${fmtMoney(d.budget)} грн</td>
+        <td class="num">${fmtInt(d.leads)} лід.</td>
+        <td class="num">${fmtInt(d.targetLeads)} ЦЛ</td>
+        <td class="num">${dConv}</td>
+        <td><span class="badge ${cplClass(dCpl)}">${cplLabel(dCpl)}${dCpl !== null ? ' грн' : ''}</span></td>
+        <td>${flags}</td>
+      </tr>`;
+  });
+  inner += '</table>';
+
+  return '<tr class="detail-row"><td colspan="8">' + inner + '</td></tr>';
 }
 
 /* ============================================================
@@ -744,6 +933,15 @@ document.getElementById('calClear').addEventListener('click', clearCustomRange);
    ПОДІЇ
    ============================================================ */
 document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+// Розгортання відео по днях (делегування, бо таблиця перерендерюється)
+document.getElementById('content').addEventListener('click', e => {
+  const t = e.target.closest('.expand-toggle');
+  if (!t) return;
+  const key = t.dataset.key;
+  expandedKeys.has(key) ? expandedKeys.delete(key) : expandedKeys.add(key);
+  render();
+});
 
 // ===== Telegram Mini App: розгортання на весь екран =====
 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData !== undefined) {
