@@ -151,15 +151,6 @@
   .stat .label { font-size: 12px; color: var(--text-dim); font-weight: 600; margin-bottom: 6px; }
   .stat .value { font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 500; }
   .stat .value small { font-size: 13px; color: var(--text-faint); }
-  .stat .delta {
-    display: inline-flex; align-items: center; gap: 3px;
-    font-family: 'DM Mono', monospace; font-size: 11.5px; font-weight: 500;
-    margin-top: 6px; padding: 2px 8px; border-radius: 999px;
-  }
-  .delta.d-good { background: rgba(74,222,128,0.1); color: var(--good); }
-  .delta.d-bad { background: rgba(248,113,113,0.1); color: var(--bad); }
-  .delta.d-neutral { background: rgba(255,255,255,0.06); color: var(--text-dim); }
-
   /* ===== Section titles ===== */
   .section-title {
     display: flex; align-items: baseline; gap: 12px;
@@ -356,10 +347,25 @@
     .r-card { grid-template-columns: 40px 1fr 1fr; row-gap: 12px; }
     .r-score { grid-column: 1 / -1; }
   }
+  @media (max-width: 600px) {
+    /* Календар — центрована модалка, а не випадайка */
+    .cal-panel {
+      position: fixed;
+      left: 50%; top: 50%; right: auto;
+      transform: translate(-50%, -50%);
+      width: min(320px, calc(100vw - 24px));
+      z-index: 100;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.75);
+    }
+    .cal-day { height: 40px; }
+    .cal-nav { width: 36px; height: 36px; }
+  }
   @media (max-width: 520px) {
     h1 { font-size: 22px; }
+    .wrap { padding: 24px 14px 48px; }
     .r-card { grid-template-columns: 36px 1fr; }
     .r-metric { min-width: 45%; }
+    .best-card .b-metrics { gap: 16px; flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -564,43 +570,6 @@ function dateRangeLabel(v) {
     : fmtDate(v.dateFrom) + '–' + fmtDate(v.dateTo);
 }
 
-/* ============================================================
-   ПОРІВНЯННЯ З ПОПЕРЕДНІМ ПЕРІОДОМ
-   ============================================================ */
-function shiftIso(iso, days) {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-// Попередній період тієї ж довжини впритул до поточного
-function prevPeriodRows() {
-  if (!customRange) return [];
-  const len = Math.round((new Date(customRange.to) - new Date(customRange.from)) / 86400000) + 1;
-  const prevTo = shiftIso(customRange.from, -1);
-  const prevFrom = shiftIso(customRange.from, -len);
-  return allRows.filter(r => r.date >= prevFrom && r.date <= prevTo);
-}
-
-function totalsOf(rows) {
-  const budget = rows.reduce((s, r) => s + r.budget, 0);
-  const leads = rows.reduce((s, r) => s + r.leads, 0);
-  const tl = rows.reduce((s, r) => s + r.targetLeads, 0);
-  return { budget, leads, tl, cpl: cpl(budget, tl) };
-}
-
-// betterWhen: 'up' — ріст це добре, 'down' — падіння це добре, 'neutral'
-function deltaPill(cur, prev, betterWhen) {
-  if (prev === null || prev === undefined || prev === 0 || cur === null) return '';
-  const pct = ((cur - prev) / prev) * 100;
-  if (!isFinite(pct)) return '';
-  const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '·';
-  let cls = 'd-neutral';
-  if (betterWhen === 'up') cls = pct > 0 ? 'd-good' : pct < 0 ? 'd-bad' : 'd-neutral';
-  if (betterWhen === 'down') cls = pct < 0 ? 'd-good' : pct > 0 ? 'd-bad' : 'd-neutral';
-  return '<span class="delta ' + cls + '">' + arrow + ' ' + Math.abs(pct).toFixed(0) + '% vs попер.</span>';
-}
-
 // Найкраще відео періоду: той самий принцип, що й рейтинг команди —
 // score з ціни ЦЛ (вага 60%) і кількості ЦЛ (вага 40%).
 // До участі допускаються відео з ЦЛ >= BEST_MIN_TL; якщо таких немає — всі з ЦЛ > 0.
@@ -648,14 +617,12 @@ function render() {
   const videos = aggregateVideos(rows);
   const best = findBestVideo(videos);
   const medals = ['🥇', '🥈', '🥉'];
-  const prev = totalsOf(prevPeriodRows());
-
   let html = `
     <div class="summary">
-      <div class="stat"><div class="label">Бюджет за період</div><div class="value">${fmtMoney(totalBudget)} <small>грн</small></div>${deltaPill(totalBudget, prev.budget, 'neutral')}</div>
-      <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div>${deltaPill(totalLeads, prev.leads, 'up')}</div>
-      <div class="stat"><div class="label">Цільові ліди</div><div class="value">${fmtInt(totalTL)}</div>${deltaPill(totalTL, prev.tl, 'up')}</div>
-      <div class="stat"><div class="label">Середня ціна ЦЛ</div><div class="value ${'cpl-' + cplClass(avgCpl)}">${cplLabel(avgCpl)} <small>грн</small></div>${deltaPill(avgCpl, prev.cpl, 'down')}</div>
+      <div class="stat"><div class="label">Бюджет за період</div><div class="value">${fmtMoney(totalBudget)} <small>грн</small></div></div>
+      <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div></div>
+      <div class="stat"><div class="label">Цільові ліди</div><div class="value">${fmtInt(totalTL)}</div></div>
+      <div class="stat"><div class="label">Середня ціна ЦЛ</div><div class="value ${'cpl-' + cplClass(avgCpl)}">${cplLabel(avgCpl)} <small>грн</small></div></div>
     </div>`;
 
   if (best) {
