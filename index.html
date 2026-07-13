@@ -42,14 +42,13 @@
   }
 
   .mono { font-family: 'DM Mono', monospace; }
-
   .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 20px 64px; }
 
   /* ===== Header ===== */
   header {
     display: flex; flex-wrap: wrap; gap: 16px;
     align-items: flex-end; justify-content: space-between;
-    margin-bottom: 28px;
+    margin-bottom: 18px;
   }
   .brand-eyebrow {
     font-family: 'DM Mono', monospace;
@@ -68,7 +67,21 @@
     transition: all 0.18s ease;
   }
   .refresh-btn:hover { background: var(--card-hover); color: var(--text); }
-  .refresh-btn { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ===== Таби сторінок ===== */
+  .page-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+  .page-tab {
+    font-family: 'Manrope', sans-serif;
+    background: var(--card); border: 1px solid var(--card-border);
+    color: var(--text-dim); font-size: 13px; font-weight: 700;
+    padding: 8px 18px; border-radius: 999px; cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .page-tab:hover { background: var(--card-hover); color: var(--text); }
+  .page-tab.on {
+    background: var(--accent-dim); border-color: rgba(0,212,170,0.4);
+    color: var(--accent);
+  }
 
   /* ===== Календар ===== */
   .cal-wrap { position: relative; }
@@ -93,10 +106,7 @@
     display: none;
   }
   .cal-panel.open { display: block; }
-  .cal-head {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 10px;
-  }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .cal-head .cal-title { font-weight: 700; font-size: 14px; text-transform: capitalize; }
   .cal-nav {
     background: var(--card); border: 1px solid var(--card-border);
@@ -125,9 +135,7 @@
     width: 4px; height: 4px; border-radius: 50%; background: var(--accent);
   }
   .cal-day.in-range { background: var(--accent-dim); border-radius: 0; }
-  .cal-day.picked {
-    background: var(--accent); color: #06251E; font-weight: 500; border-radius: 8px;
-  }
+  .cal-day.picked { background: var(--accent); color: #06251E; font-weight: 500; border-radius: 8px; }
   .cal-day.picked::after { background: #06251E; }
   .cal-hint { font-size: 11px; color: var(--text-faint); margin-top: 10px; text-align: center; }
   .cal-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
@@ -138,11 +146,8 @@
   }
   .cal-clear:hover { color: var(--bad); background: var(--card); }
 
-  /* ===== Summary strip ===== */
-  .summary {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 12px; margin-bottom: 28px;
-  }
+  /* ===== Summary ===== */
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
   .stat {
     background: var(--card); border: 1px solid var(--card-border);
     border-radius: var(--radius); padding: 16px 18px;
@@ -151,14 +156,15 @@
   .stat .label { font-size: 12px; color: var(--text-dim); font-weight: 600; margin-bottom: 6px; }
   .stat .value { font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 500; }
   .stat .value small { font-size: 13px; color: var(--text-faint); }
-  /* ===== Section titles ===== */
-  .section-title {
-    display: flex; align-items: baseline; gap: 12px;
-    margin: 8px 0 14px;
+  .stat .pending-note {
+    font-family: 'DM Mono', monospace; font-size: 11.5px;
+    color: var(--warn); margin-top: 5px;
   }
+
+  /* ===== Section titles ===== */
+  .section-title { display: flex; align-items: center; gap: 12px; margin: 8px 0 14px; flex-wrap: wrap; }
   .section-title h2 { font-size: 17px; font-weight: 700; }
   .section-title .hint { font-size: 12px; color: var(--text-faint); }
-
   .norm-legend {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 12px; color: var(--text-dim);
@@ -167,7 +173,7 @@
   }
   .norm-legend .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
 
-  /* ===== Найкраще відео періоду ===== */
+  /* ===== Найкраще відео ===== */
   .best-card {
     display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
     background: linear-gradient(90deg, rgba(0,212,170,0.12), var(--card) 60%);
@@ -190,52 +196,7 @@
   .best-card .b-metric .m-label { font-size: 11px; color: var(--text-faint); font-weight: 600; margin-bottom: 3px; }
   .best-card .b-metric .m-value { font-family: 'DM Mono', monospace; font-size: 18px; }
 
-  td .video-name { font-weight: 600; }
-  td .crown-mark { margin-right: 5px; }
-  tr.best-row td { background: rgba(0,212,170,0.05); }
-  td .sub { display: block; font-size: 11px; color: var(--text-faint); font-weight: 500; margin-top: 2px; }
-
-  .mode-toggle {
-    display: inline-flex; margin-left: auto;
-    background: var(--card); border: 1px solid var(--card-border);
-    border-radius: 999px; padding: 3px; gap: 2px;
-  }
-  .mode-toggle button {
-    font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 700;
-    background: none; border: none; color: var(--text-dim);
-    padding: 6px 14px; border-radius: 999px; cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  .mode-toggle button.on { background: var(--accent-dim); color: var(--accent); }
-
-  /* ===== Розгортання по днях ===== */
-  .expand-toggle {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 11px; font-weight: 600; color: var(--text-faint);
-    cursor: pointer; margin-top: 4px; user-select: none;
-    transition: color 0.15s ease;
-  }
-  .expand-toggle:hover { color: var(--accent); }
-  tr.detail-row > td {
-    background: rgba(0, 0, 0, 0.25) !important;
-    padding: 6px 16px 14px 16px;
-  }
-  .day-table { width: 100%; border-collapse: collapse; }
-  .day-table td {
-    padding: 8px 12px; font-size: 12.5px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    background: transparent !important;
-  }
-  .day-table tr:last-child td { border-bottom: none; }
-  .day-table .wd {
-    font-family: 'DM Mono', monospace; text-transform: uppercase;
-    color: var(--text-faint); font-size: 11px; width: 34px;
-  }
-  .day-table tr.hl-leads td { background: rgba(251,191,36,0.06) !important; }
-  .day-table tr.hl-conv td { background: rgba(0,212,170,0.06) !important; }
-  .day-table tr.hl-leads.hl-conv td { background: rgba(74,222,128,0.08) !important; }
-
-  /* ===== Rating cards ===== */
+  /* ===== Рейтинг команди ===== */
   .rating { display: flex; flex-direction: column; gap: 10px; margin-bottom: 36px; }
   .r-card {
     display: grid;
@@ -246,24 +207,19 @@
     backdrop-filter: blur(12px);
     transition: all 0.18s ease;
   }
-  .r-card:hover { background: var(--card-hover); transform: translateY(-1px); }
+  .r-card:hover { background: var(--card-hover); }
   .r-card.top {
     border-color: rgba(0,212,170,0.35);
     background: linear-gradient(90deg, rgba(0,212,170,0.08), var(--card) 55%);
   }
-
-  .r-rank {
-    font-family: 'DM Mono', monospace; font-size: 20px;
-    color: var(--text-faint); text-align: center;
-  }
+  .r-rank { font-family: 'DM Mono', monospace; font-size: 20px; color: var(--text-faint); text-align: center; }
   .r-card.top .r-rank { color: var(--accent); }
   .r-rank .medal { font-size: 22px; display: block; }
-
   .r-name { font-weight: 700; font-size: 15px; }
   .r-name .videos { display: block; font-size: 12px; font-weight: 500; color: var(--text-faint); margin-top: 2px; }
-
   .r-metric .m-label { font-size: 11px; color: var(--text-faint); font-weight: 600; margin-bottom: 3px; }
   .r-metric .m-value { font-family: 'DM Mono', monospace; font-size: 16px; }
+  .r-metric .m-sub { font-family: 'DM Mono', monospace; font-size: 10.5px; color: var(--warn); }
 
   .cpl-super { color: var(--accent); }
   .cpl-good  { color: var(--good); }
@@ -285,14 +241,29 @@
   .score-fill.k-warn { background: linear-gradient(90deg, #C2901A, var(--warn)); }
   .score-fill.k-bad { background: linear-gradient(90deg, #C24444, var(--bad)); }
 
-  /* ===== Videos table ===== */
+  .owner-toggle, .expand-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600; color: var(--text-faint);
+    cursor: pointer; margin-top: 4px; user-select: none;
+    transition: color 0.15s ease;
+  }
+  .owner-toggle:hover, .expand-toggle:hover { color: var(--accent); }
+
+  .r-detail {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 8px 16px 12px;
+    margin-top: -4px;
+  }
+
+  /* ===== Таблиці ===== */
   .table-card {
     background: var(--card); border: 1px solid var(--card-border);
     border-radius: var(--radius); backdrop-filter: blur(12px);
     overflow: hidden;
   }
   .table-scroll { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  table { width: 100%; border-collapse: collapse; min-width: 820px; }
   th {
     font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
     color: var(--text-faint); font-weight: 700; text-align: left;
@@ -308,6 +279,11 @@
   tr:hover td { background: rgba(255,255,255,0.02); }
   td.num { font-family: 'DM Mono', monospace; }
   td .owner { font-weight: 600; }
+  td .sub { display: block; font-size: 11px; color: var(--text-faint); font-weight: 500; margin-top: 2px; }
+  td .sub.pend { color: var(--warn); font-family: 'DM Mono', monospace; }
+  td .video-name { font-weight: 600; }
+  td .crown-mark { margin-right: 5px; }
+  tr.best-row td { background: rgba(0,212,170,0.05); }
 
   a.video-link {
     color: var(--accent); text-decoration: none; font-weight: 600;
@@ -325,11 +301,41 @@
   .badge.bad   { background: rgba(248,113,113,0.12); color: var(--bad); }
   .badge.none  { background: rgba(255,255,255,0.06); color: var(--text-faint); }
 
-  /* ===== States ===== */
-  .state {
-    text-align: center; padding: 60px 20px; color: var(--text-dim);
-    font-size: 14px;
+  .mode-toggle {
+    display: inline-flex; margin-left: auto;
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 999px; padding: 3px; gap: 2px;
   }
+  .mode-toggle button {
+    font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 700;
+    background: none; border: none; color: var(--text-dim);
+    padding: 6px 14px; border-radius: 999px; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .mode-toggle button.on { background: var(--accent-dim); color: var(--accent); }
+
+  /* Вкладені міні-таблиці (розбивки) */
+  tr.detail-row > td {
+    background: rgba(0, 0, 0, 0.25) !important;
+    padding: 6px 16px 14px 16px;
+  }
+  .day-table { width: 100%; border-collapse: collapse; }
+  .day-table td {
+    padding: 8px 12px; font-size: 12.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    background: transparent !important;
+  }
+  .day-table tr:last-child td { border-bottom: none; }
+  .day-table tr.hl-leads td { background: rgba(251,191,36,0.06) !important; }
+  .day-table tr.hl-conv td { background: rgba(0,212,170,0.06) !important; }
+  .day-table tr.hl-leads.hl-conv td { background: rgba(74,222,128,0.08) !important; }
+  .day-table .dt-label {
+    font-size: 11px; color: var(--text-faint); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+
+  /* ===== States ===== */
+  .state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: 14px; }
   .state.error { color: var(--bad); }
   .spinner {
     width: 28px; height: 28px; margin: 0 auto 14px;
@@ -338,10 +344,7 @@
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; animation: none !important; }
-  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
   /* ===== Mobile ===== */
   @media (max-width: 900px) {
@@ -350,7 +353,6 @@
     .r-score { grid-column: 1 / -1; }
   }
   @media (max-width: 600px) {
-    /* Календар — центрована модалка, а не випадайка */
     .cal-panel {
       position: fixed;
       left: 50%; top: 50%; right: auto;
@@ -398,6 +400,8 @@
     </div>
   </header>
 
+  <div class="page-tabs" id="pageTabs"></div>
+
   <div id="content">
     <div class="state"><div class="spinner"></div>Завантаження даних…</div>
   </div>
@@ -408,33 +412,27 @@
 /* ============================================================
    НАЛАШТУВАННЯ
    ============================================================ */
-const API_URL = 'https://script.google.com/macros/s/AKfycbyy2f7GPEcNm-J52b2hUz_W6df2xfszfIkLtwbqN7cEu0EIiy4jlYAze0mDvoNdAR3jEg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbznFEdPPszEhhZ2ObsKVSuvgxW3sczPODYPP_c7RZRP5ql_1SKjli_HqOvsQMpLP9F1Gw/exec'; // ⚠️ перевір: URL твого АКТИВНОГО деплою
 
 const CONFIG = {
   PRICE_SUPER: 260,   // ≤ 260 грн — супер (колір бейджа)
-  PRICE_NORM:  350,   // 260–350 грн — норма; якір коефіцієнта: ціна 350 = K 1.0
+  PRICE_NORM:  350,   // 260–350 грн — норма (колір бейджа)
   PRICE_WARN:  450,   // 350–450 грн — дорого (колір бейджа)
   K_ANCHOR:    350,   // ціна ЦЛ 350 (верх норми) = K 1.0; ідеал 260 дає ~1.35 за ціною
   WEIGHT_PRICE:  0.6, // вага ціни ЦЛ у коефіцієнті
   WEIGHT_VOLUME: 0.4, // вага кількості ЦЛ у коефіцієнті
-  K_CAP:         1.5, // стеля компонентів K (захист від випадкових перекосів)
+  K_CAP:         1.5, // стеля компонентів K
   BEST_MIN_TL:   3    // мінімум ЦЛ, щоб відео могло стати "Відео періоду"
 };
 
 let allRows = [];
-let customRange = null;   // {from:'yyyy-mm-dd', to:'yyyy-mm-dd'} — обраний період
-let calPickStart = null;  // перша обрана дата (очікуємо другу)
-let calMonth = null;      // перше число місяця, який показує календар
-
-// Дефолт: останні 2 дні, які є в таблиці
-function defaultRange() {
-  const dates = [...new Set(allRows.map(r => r.date).filter(Boolean))].sort();
-  if (!dates.length) return null;
-  return {
-    from: dates.length > 1 ? dates[dates.length - 2] : dates[dates.length - 1],
-    to: dates[dates.length - 1]
-  };
-}
+let customRange = null;
+let calPickStart = null;
+let calMonth = null;
+let tableMode = 'videos';   // 'videos' | 'entries'
+let pageFilter = 'all';     // 'all' | назва сторінки
+const expandedKeys = new Set();   // розгорнуті відео
+const expandedOwners = new Set(); // розгорнуті люди (по сторінках)
 
 /* ============================================================
    ЗАВАНТАЖЕННЯ
@@ -446,30 +444,46 @@ async function loadData() {
     const res = await fetch(API_URL);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Помилка API');
-    allRows = data.rows || [];
+    allRows = (data.rows || []).filter(r => r.dateFrom);
     customRange = customRange || defaultRange();
     if (customRange) updateCalLabel();
+    renderPageTabs();
     document.getElementById('updatedAt').textContent =
       'Оновлено: ' + new Date().toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     render();
   } catch (err) {
     content.innerHTML = '<div class="state error">Не вдалося завантажити дані.<br>' +
       escapeHtml(String(err.message || err)) +
-      '<br><br>Перевір API_URL і чи задеплоєний Apps Script як Web App (доступ: Anyone).</div>';
+      '<br><br>Перевір API_URL і деплой Apps Script (доступ: Anyone).</div>';
   }
 }
 
 /* ============================================================
-   РОЗРАХУНКИ
+   ПЕРІОДИ (проміжки дат)
    ============================================================ */
-function filterByPeriod(rows) {
-  if (!customRange) return rows;
-  return rows.filter(r => r.date >= customRange.from && r.date <= customRange.to);
+// Дефолт: останній звітний період — записи з найпізнішою "Дата по"
+function defaultRange() {
+  if (!allRows.length) return null;
+  const lastTo = allRows.map(r => r.dateTo).sort().pop();
+  const fromCandidates = allRows.filter(r => r.dateTo === lastTo).map(r => r.dateFrom).sort();
+  return { from: fromCandidates[0], to: lastTo };
 }
 
-function cpl(budget, targetLeads) {
-  return targetLeads > 0 ? budget / targetLeads : null;
+// Запис потрапляє в період, якщо проміжки перетинаються
+function overlaps(r) {
+  return r.dateFrom <= customRange.to && r.dateTo >= customRange.from;
 }
+
+function filteredRows() {
+  let rows = customRange ? allRows.filter(overlaps) : allRows.slice();
+  if (pageFilter !== 'all') rows = rows.filter(r => r.page === pageFilter);
+  return rows;
+}
+
+/* ============================================================
+   МЕТРИКИ
+   ============================================================ */
+function cpl(budget, tl) { return tl > 0 ? budget / tl : null; }
 
 function cplClass(v) {
   if (v === null) return 'none';
@@ -479,12 +493,18 @@ function cplClass(v) {
   return 'bad';
 }
 
-function cplLabel(v) {
-  return v === null ? '—' : fmtMoney(v);
+function cplLabel(v, approx) {
+  if (v === null) return '—';
+  return (approx ? '≈' : '') + fmtMoney(v);
 }
 
-// Коефіцієнт: 1.0 = норма, вище — краще, нижче — гірше
-// K = (350 / ціна ЦЛ) × 0.6 + (свої ЦЛ / середні ЦЛ) × 0.4, компоненти обмежені K_CAP
+// Конверсія — тільки по опрацьованих лідах (ліди мінус очікують)
+function convOf(tl, leads, pending) {
+  const processed = Math.max(0, leads - pending);
+  return processed > 0 ? (tl / processed) * 100 : null;
+}
+
+// Коефіцієнт: 1.0 = норма (350 грн), вище — краще
 function kOf(cplVal, tl, avgTL) {
   const kPrice = cplVal === null ? 0 : Math.min(CONFIG.K_CAP, CONFIG.K_ANCHOR / cplVal);
   const kVol = avgTL > 0 ? Math.min(CONFIG.K_CAP, tl / avgTL) : 0;
@@ -492,20 +512,59 @@ function kOf(cplVal, tl, avgTL) {
 }
 
 function kClass(k) {
-  if (k >= 1.2) return 'k-top';   // прям дуже потужно
-  if (k >= 1.0) return 'k-good';  // добре
-  if (k >= 0.9) return 'k-warn';  // на межі
-  return 'k-bad';                 // біда
+  if (k >= 1.2) return 'k-top';
+  if (k >= 1.0) return 'k-good';
+  if (k >= 0.9) return 'k-warn';
+  return 'k-bad';
+}
+
+/* ============================================================
+   АГРЕГАЦІЇ
+   ============================================================ */
+function vidKey(r) {
+  const link = (r.link || '').trim().toLowerCase();
+  if (link) return 'L:' + link;
+  return 'N:' + r.owner.trim().toLowerCase() + '|' + r.page.toLowerCase() + '|' + (r.name || '').trim().toLowerCase();
+}
+
+function sumInto(target, r) {
+  target.budget += r.budget;
+  target.leads += r.leads;
+  target.targetLeads += r.targetLeads;
+  target.pending += r.pending;
+}
+
+function aggregateVideos(rows) {
+  const map = {};
+  rows.forEach(r => {
+    const k = vidKey(r);
+    const v = map[k] || (map[k] = {
+      key: k, owner: r.owner, page: r.page, name: r.name || '', link: r.link || '',
+      budget: 0, leads: 0, targetLeads: 0, pending: 0, entries: 0,
+      dateFrom: r.dateFrom, dateTo: r.dateTo, entryRows: []
+    });
+    if (!v.name && r.name) v.name = r.name;
+    if (!v.link && r.link) v.link = r.link;
+    sumInto(v, r);
+    v.entries++;
+    v.entryRows.push(r);
+    if (r.dateFrom < v.dateFrom) v.dateFrom = r.dateFrom;
+    if (r.dateTo > v.dateTo) v.dateTo = r.dateTo;
+  });
+  return Object.values(map);
 }
 
 function buildRating(rows) {
   const byOwner = {};
   rows.forEach(r => {
-    const o = byOwner[r.owner] || (byOwner[r.owner] = { owner: r.owner, budget: 0, leads: 0, targetLeads: 0, vidKeys: new Set() });
-    o.budget += r.budget;
-    o.leads += r.leads;
-    o.targetLeads += r.targetLeads;
+    const o = byOwner[r.owner] || (byOwner[r.owner] = {
+      owner: r.owner, budget: 0, leads: 0, targetLeads: 0, pending: 0,
+      vidKeys: new Set(), pages: {}
+    });
+    sumInto(o, r);
     o.vidKeys.add(vidKey(r));
+    const p = o.pages[r.page] || (o.pages[r.page] = { page: r.page, budget: 0, leads: 0, targetLeads: 0, pending: 0 });
+    sumInto(p, r);
   });
 
   const list = Object.values(byOwner);
@@ -514,56 +573,33 @@ function buildRating(rows) {
 
   list.forEach(o => {
     o.cpl = cpl(o.budget, o.targetLeads);
-    o.conv = o.leads > 0 ? (o.targetLeads / o.leads) * 100 : null;
+    o.conv = convOf(o.targetLeads, o.leads, o.pending);
     o.k = kOf(o.cpl, o.targetLeads, avgTL);
+    o.approx = o.pending > 0;
   });
 
   list.sort((a, b) => b.k - a.k || (a.cpl ?? Infinity) - (b.cpl ?? Infinity));
   return list;
 }
 
-let tableMode = 'videos'; // 'videos' — згруповано по відео, 'entries' — всі записи
-const expandedKeys = new Set(); // які відео розгорнуті по днях
+// Найкраще відео: коефіцієнт по відео (обсяг — відносно середнього по відео)
+function findBestVideo(videos) {
+  let candidates = videos
+    .map(v => ({ ...v, _cpl: cpl(v.budget, v.targetLeads) }))
+    .filter(v => v._cpl !== null);
+  if (!candidates.length) return null;
 
-const WD_SHORT = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-function weekdayOf(iso) {
-  const d = new Date(iso);
-  return isNaN(d) ? '' : WD_SHORT[d.getDay()];
+  const qualified = candidates.filter(v => v.targetLeads >= CONFIG.BEST_MIN_TL);
+  if (qualified.length) candidates = qualified;
+
+  const avgTL = candidates.reduce((s, v) => s + v.targetLeads, 0) / candidates.length;
+  candidates.forEach(v => { v._k = kOf(v._cpl, v.targetLeads, avgTL); });
+
+  candidates.sort((a, b) => b._k - a._k || a._cpl - b._cpl);
+  return candidates[0];
 }
 
-// Ключ відео: посилання (унікальний ідентифікатор), якщо нема — автор + назва
-function vidKey(r) {
-  const link = (r.link || '').trim().toLowerCase();
-  if (link) return 'L:' + link;
-  return 'N:' + r.owner.trim().toLowerCase() + '|' + (r.name || '').trim().toLowerCase();
-}
-
-// Групуємо записи (щоденні/за 3 дні) в одне відео з сумарними показниками
-function aggregateVideos(rows) {
-  const map = {};
-  rows.forEach(r => {
-    const k = vidKey(r);
-    const v = map[k] || (map[k] = {
-      key: k, owner: r.owner, page: r.page || '', name: r.name || '', link: r.link || '',
-      budget: 0, leads: 0, targetLeads: 0, entries: 0, dates: [], entryRows: []
-    });
-    if (!v.page && r.page) v.page = r.page;
-    if (!v.name && r.name) v.name = r.name;
-    if (!v.link && r.link) v.link = r.link;
-    v.budget += r.budget;
-    v.leads += r.leads;
-    v.targetLeads += r.targetLeads;
-    v.entries++;
-    v.entryRows.push(r);
-    if (r.date) v.dates.push(r.date);
-  });
-  return Object.values(map).map(v => {
-    v.dates.sort();
-    v.dateFrom = v.dates[0] || '';
-    v.dateTo = v.dates[v.dates.length - 1] || '';
-    return v;
-  });
-}
+function videoTitle(r) { return r.name || 'Відео без назви'; }
 
 function pluralZapys(n) {
   const m10 = n % 10, m100 = n % 100;
@@ -572,243 +608,28 @@ function pluralZapys(n) {
   return 'записів';
 }
 
-function dateRangeLabel(v) {
-  if (!v.dateFrom) return '';
-  return v.dateFrom === v.dateTo
-    ? fmtDate(v.dateFrom)
-    : fmtDate(v.dateFrom) + '–' + fmtDate(v.dateTo);
-}
-
-// Найкраще відео періоду: той самий коефіцієнт, що й у рейтингу команди,
-// тільки порівнюються відео між собою (обсяг — відносно середнього по відео).
-// До участі допускаються відео з ЦЛ >= BEST_MIN_TL; якщо таких немає — всі з ЦЛ > 0.
-function findBestVideo(rows) {
-  let candidates = rows
-    .map(r => ({ ...r, _cpl: cpl(r.budget, r.targetLeads) }))
-    .filter(r => r._cpl !== null);
-  if (!candidates.length) return null;
-
-  const qualified = candidates.filter(r => r.targetLeads >= CONFIG.BEST_MIN_TL);
-  if (qualified.length) candidates = qualified;
-
-  const avgTL = candidates.reduce((s, r) => s + r.targetLeads, 0) / candidates.length;
-  candidates.forEach(r => { r._k = kOf(r._cpl, r.targetLeads, avgTL); });
-
-  candidates.sort((a, b) => b._k - a._k || a._cpl - b._cpl);
-  return candidates[0];
-}
-
-function videoTitle(r) {
-  return r.name || 'Відео без назви';
+function rangeLabel(from, to) {
+  if (!from) return '';
+  return from === to ? fmtDate(from) : fmtDate(from) + '–' + fmtDate(to);
 }
 
 /* ============================================================
-   РЕНДЕР
+   ТАБИ СТОРІНОК
    ============================================================ */
-function render() {
-  const rows = filterByPeriod(allRows);
-  const content = document.getElementById('content');
+function pagesList() {
+  return [...new Set(allRows.map(r => r.page))].sort();
+}
 
-  if (!rows.length) {
-    content.innerHTML = '<div class="state">За цей період даних немає.<br>Додай рядки в Google Таблицю або обери інший період.</div>';
-    return;
-  }
-
-  const totalBudget = rows.reduce((s, r) => s + r.budget, 0);
-  const totalLeads = rows.reduce((s, r) => s + r.leads, 0);
-  const totalTL = rows.reduce((s, r) => s + r.targetLeads, 0);
-  const avgCpl = cpl(totalBudget, totalTL);
-
-  const rating = buildRating(rows);
-  const videos = aggregateVideos(rows);
-  const best = findBestVideo(videos);
-  const medals = ['🥇', '🥈', '🥉'];
-  let html = `
-    <div class="summary">
-      <div class="stat"><div class="label">Бюджет за період</div><div class="value">${fmtMoney(totalBudget)} <small>грн</small></div></div>
-      <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div></div>
-      <div class="stat"><div class="label">Цільові ліди</div><div class="value">${fmtInt(totalTL)}</div></div>
-      <div class="stat"><div class="label">Середня ціна ЦЛ</div><div class="value ${'cpl-' + cplClass(avgCpl)}">${cplLabel(avgCpl)} <small>грн</small></div></div>
-    </div>`;
-
-  if (best) {
-    const nameHtml = best.link
-      ? '<a href="' + escapeAttr(best.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(best)) + '</a>'
-      : escapeHtml(videoTitle(best));
-    html += `
-    <div class="best-card">
-      <div class="crown">👑</div>
-      <div class="b-info">
-        <div class="b-eyebrow">Відео періоду</div>
-        <div class="b-name">${nameHtml}</div>
-        <div class="b-owner">${escapeHtml(best.owner)}${best.page ? ' · ' + escapeHtml(best.page) : ''} · ${escapeHtml(dateRangeLabel(best))} · ${best.entries} ${pluralZapys(best.entries)}</div>
-      </div>
-      <div class="b-metrics">
-        <div class="b-metric"><div class="m-label">Ціна ЦЛ</div><div class="m-value ${'cpl-' + cplClass(best._cpl)}">${cplLabel(best._cpl)} грн</div></div>
-        <div class="b-metric"><div class="m-label">ЦЛ</div><div class="m-value">${fmtInt(best.targetLeads)}</div></div>
-        <div class="b-metric"><div class="m-label">Бюджет</div><div class="m-value">${fmtMoney(best.budget)} грн</div></div>
-      </div>
-    </div>`;
-  }
-
-  html += `
-    <div class="section-title">
-      <h2>Рейтинг команди</h2>
-      <span class="norm-legend"><span class="dot"></span>норма: ${CONFIG.PRICE_SUPER}–${CONFIG.PRICE_NORM} грн / ЦЛ</span>
-    </div>
-    <div class="rating">`;
-
-  rating.forEach((o, i) => {
-    html += `
-      <div class="r-card ${i === 0 ? 'top' : ''}">
-        <div class="r-rank">${i < 3 ? '<span class="medal">' + medals[i] + '</span>' : (i + 1)}</div>
-        <div class="r-name">${escapeHtml(o.owner)}<span class="videos">${o.videos} відео · ${fmtMoney(o.budget)} грн</span></div>
-        <div class="r-metric"><div class="m-label">Ціна ЦЛ</div><div class="m-value ${'cpl-' + cplClass(o.cpl)}">${cplLabel(o.cpl)}</div></div>
-        <div class="r-metric"><div class="m-label">Цільові ліди</div><div class="m-value">${fmtInt(o.targetLeads)}</div></div>
-        <div class="r-metric"><div class="m-label">Ліди</div><div class="m-value">${fmtInt(o.leads)}</div></div>
-        <div class="r-metric"><div class="m-label">Конверсія в ЦЛ</div><div class="m-value">${o.conv === null ? '—' : o.conv.toFixed(0) + '%'}</div></div>
-        <div class="r-score">
-          <div class="s-top"><span>Коефіцієнт</span><b class="${kClass(o.k)}">${o.k.toFixed(2)}</b></div>
-          <div class="score-bar"><div class="score-fill ${kClass(o.k)}" style="width:${Math.min(100, o.k / CONFIG.K_CAP * 100)}%"></div></div>
-        </div>
-      </div>`;
+function renderPageTabs() {
+  const pages = pagesList();
+  const el = document.getElementById('pageTabs');
+  if (pages.length < 2) { el.innerHTML = ''; return; }
+  let html = '<button class="page-tab ' + (pageFilter === 'all' ? 'on' : '') + '" data-page="all">Всі сторінки</button>';
+  pages.forEach(p => {
+    html += '<button class="page-tab ' + (pageFilter === p ? 'on' : '') + '" data-page="' + escapeAttr(p) + '">' + escapeHtml(p) + '</button>';
   });
-
-  html += `</div>
-
-    <div class="section-title">
-      <h2>${tableMode === 'videos' ? 'Рейтинг відео' : 'Всі записи'}</h2>
-      <span class="hint">${tableMode === 'videos'
-        ? videos.length + ' відео · ' + rows.length + ' ' + pluralZapys(rows.length) + ' · сортування за ціною ЦЛ'
-        : rows.length + ' ' + pluralZapys(rows.length) + ' · сортування за ціною ЦЛ'}</span>
-      <span class="mode-toggle">
-        <button class="${tableMode === 'videos' ? 'on' : ''}" onclick="setTableMode('videos')">По відео</button>
-        <button class="${tableMode === 'entries' ? 'on' : ''}" onclick="setTableMode('entries')">Записи</button>
-      </span>
-    </div>
-    <div class="table-card"><div class="table-scroll"><table>`;
-
-  if (tableMode === 'videos') {
-    html += `
-      <thead><tr>
-        <th>Період</th><th>Відповідальний</th><th>Сторінка</th><th>Відео</th>
-        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Конверсія</th><th>Ціна ЦЛ</th>
-      </tr></thead><tbody>`;
-
-    const sortedV = videos.map(v => ({ ...v, _cpl: cpl(v.budget, v.targetLeads) }))
-      .sort((a, b) => (a._cpl ?? Infinity) - (b._cpl ?? Infinity));
-
-    sortedV.forEach(v => {
-      const conv = v.leads > 0 ? ((v.targetLeads / v.leads) * 100).toFixed(0) + '%' : '—';
-      const isBest = best && v.key === best.key;
-      const isOpen = expandedKeys.has(v.key);
-      const crown = isBest ? '<span class="crown-mark">👑</span>' : '';
-      const nameCell = v.link
-        ? crown + '<a class="video-link video-name" href="' + escapeAttr(v.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(v)) + ' ↗</a>'
-        : crown + '<span class="video-name">' + escapeHtml(videoTitle(v)) + '</span>';
-      const toggle = v.entries > 1
-        ? '<span class="expand-toggle" data-key="' + escapeAttr(v.key) + '">' + (isOpen ? '▴ згорнути' : '▾ розгорнути') + '</span>'
-        : '';
-      html += `
-        <tr${isBest ? ' class="best-row"' : ''}>
-          <td class="num">${escapeHtml(dateRangeLabel(v))}<span class="sub">${v.entries} ${pluralZapys(v.entries)}</span></td>
-          <td><span class="owner">${escapeHtml(v.owner)}</span></td>
-          <td>${v.page ? escapeHtml(v.page) : '—'}</td>
-          <td>${nameCell}${toggle ? '<br>' + toggle : ''}</td>
-          <td class="num">${fmtMoney(v.budget)}</td>
-          <td class="num">${fmtInt(v.leads)}</td>
-          <td class="num">${fmtInt(v.targetLeads)}</td>
-          <td class="num">${conv}</td>
-          <td><span class="badge ${cplClass(v._cpl)}">${cplLabel(v._cpl)}${v._cpl !== null ? ' грн' : ''}</span></td>
-        </tr>`;
-      if (isOpen) html += renderDayDetails(v);
-    });
-  } else {
-    html += `
-      <thead><tr>
-        <th>Дата</th><th>Відповідальний</th><th>Сторінка</th><th>Відео</th>
-        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Конверсія</th><th>Ціна ЦЛ</th>
-      </tr></thead><tbody>`;
-
-    const sorted = [...rows].map(r => ({ ...r, _cpl: cpl(r.budget, r.targetLeads) }))
-      .sort((a, b) => (a._cpl ?? Infinity) - (b._cpl ?? Infinity));
-
-    sorted.forEach(r => {
-      const conv = r.leads > 0 ? ((r.targetLeads / r.leads) * 100).toFixed(0) + '%' : '—';
-      const nameCell = r.link
-        ? '<a class="video-link video-name" href="' + escapeAttr(r.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(r)) + ' ↗</a>'
-        : '<span class="video-name">' + escapeHtml(videoTitle(r)) + '</span>';
-      html += `
-        <tr>
-          <td class="num">${escapeHtml(fmtDate(r.date))}</td>
-          <td><span class="owner">${escapeHtml(r.owner)}</span></td>
-          <td>${r.page ? escapeHtml(r.page) : '—'}</td>
-          <td>${nameCell}</td>
-          <td class="num">${fmtMoney(r.budget)}</td>
-          <td class="num">${fmtInt(r.leads)}</td>
-          <td class="num">${fmtInt(r.targetLeads)}</td>
-          <td class="num">${conv}</td>
-          <td><span class="badge ${cplClass(r._cpl)}">${cplLabel(r._cpl)}${r._cpl !== null ? ' грн' : ''}</span></td>
-        </tr>`;
-    });
-  }
-
-  html += `</tbody></table></div></div>`;
-  content.innerHTML = html;
+  el.innerHTML = html;
 }
-
-function setTableMode(mode) {
-  tableMode = mode;
-  render();
-}
-
-// Деталізація відео по днях: 🔥 день з найбільшою к-стю лідів, 🎯 день з найвищою конверсією в ЦЛ
-function renderDayDetails(v) {
-  const days = [...v.entryRows].sort((a, b) => (a.date > b.date ? 1 : -1));
-
-  let maxLeads = -1, maxLeadsIdx = -1, maxConv = -1, maxConvIdx = -1;
-  days.forEach((d, i) => {
-    if (d.leads > 0 && d.leads > maxLeads) { maxLeads = d.leads; maxLeadsIdx = i; }
-    const c = d.leads > 0 ? d.targetLeads / d.leads : -1;
-    if (c > maxConv && d.targetLeads > 0) { maxConv = c; maxConvIdx = i; }
-  });
-
-  let inner = '<table class="day-table">';
-  days.forEach((d, i) => {
-    const dCpl = cpl(d.budget, d.targetLeads);
-    const dConv = d.leads > 0 ? ((d.targetLeads / d.leads) * 100).toFixed(0) + '%' : '—';
-    const isL = i === maxLeadsIdx && days.length > 1;
-    const isC = i === maxConvIdx && days.length > 1;
-    const cls = (isL ? 'hl-leads ' : '') + (isC ? 'hl-conv' : '');
-    inner += `
-      <tr class="${cls.trim()}">
-        <td class="wd">${weekdayOf(d.date)}</td>
-        <td class="num">${escapeHtml(fmtDate(d.date))}</td>
-        <td class="num">${fmtMoney(d.budget)} грн</td>
-        <td class="num">${fmtInt(d.leads)} лід.</td>
-        <td class="num">${fmtInt(d.targetLeads)} ЦЛ</td>
-        <td class="num">${dConv}</td>
-        <td><span class="badge ${cplClass(dCpl)}">${cplLabel(dCpl)}${dCpl !== null ? ' грн' : ''}</span></td>
-      </tr>`;
-  });
-  inner += '</table>';
-
-  return '<tr class="detail-row"><td colspan="9">' + inner + '</td></tr>';
-}
-
-/* ============================================================
-   ФОРМАТУВАННЯ / ХЕЛПЕРИ
-   ============================================================ */
-function fmtMoney(v) { return Math.round(v).toLocaleString('uk-UA'); }
-function fmtInt(v) { return Number(v).toLocaleString('uk-UA'); }
-function fmtDate(s) {
-  const d = new Date(s);
-  return isNaN(d) ? s : d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
-}
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-function escapeAttr(s) { return escapeHtml(s); }
 
 /* ============================================================
    КАЛЕНДАР
@@ -817,8 +638,24 @@ const MONTHS_UA = ['січень','лютий','березень','квітен�
                    'липень','серпень','вересень','жовтень','листопад','грудень'];
 const WEEKDAYS_UA = ['пн','вт','ср','чт','пт','сб','нд'];
 
+function isoShift(iso, days) {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Всі дні, покриті хоч одним проміжком
 function availableDates() {
-  return new Set(allRows.map(r => r.date).filter(Boolean));
+  const set = new Set();
+  allRows.forEach(r => {
+    let d = r.dateFrom, guard = 0;
+    while (d <= r.dateTo && guard < 92) { // захист від помилкових проміжків
+      set.add(d);
+      d = isoShift(d, 1);
+      guard++;
+    }
+  });
+  return set;
 }
 
 function isoOf(y, m, d) {
@@ -828,7 +665,6 @@ function isoOf(y, m, d) {
 function openCalendar() {
   const avail = availableDates();
   if (!calMonth) {
-    // стартуємо з місяця останньої наявної дати
     const last = [...avail].sort().pop();
     const d = last ? new Date(last) : new Date();
     calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
@@ -864,7 +700,7 @@ function renderCalendar() {
   const grid = document.getElementById('calGrid');
   grid.innerHTML = WEEKDAYS_UA.map(w => '<div class="cal-wd">' + w + '</div>').join('');
 
-  const firstIdx = (new Date(y, m, 1).getDay() + 6) % 7; // пн = 0
+  const firstIdx = (new Date(y, m, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(y, m + 1, 0).getDate();
 
   for (let i = 0; i < firstIdx; i++) grid.insertAdjacentHTML('beforeend', '<div class="cal-day"></div>');
@@ -899,31 +735,308 @@ function pickDate(iso) {
   const to = calPickStart <= iso ? iso : calPickStart;
   customRange = { from: from, to: to };
   calPickStart = null;
-  applyCustomRange();
+  updateCalLabel();
   closeCalendar();
+  render();
 }
 
 function updateCalLabel() {
   const btn = document.getElementById('calBtn');
   btn.classList.add('active');
-  document.getElementById('calLabel').textContent =
-    customRange.from === customRange.to
-      ? fmtDate(customRange.from)
-      : fmtDate(customRange.from) + ' — ' + fmtDate(customRange.to);
-}
-
-function applyCustomRange() {
-  updateCalLabel();
-  render();
+  document.getElementById('calLabel').textContent = rangeLabel(customRange.from, customRange.to).replace('–', ' — ');
 }
 
 function clearCustomRange() {
   calPickStart = null;
-  customRange = defaultRange(); // повертаємось до останніх 2 днів
+  customRange = defaultRange();
   if (customRange) updateCalLabel();
   closeCalendar();
   render();
 }
+
+/* ============================================================
+   РЕНДЕР
+   ============================================================ */
+function render() {
+  const rows = filteredRows();
+  const content = document.getElementById('content');
+
+  if (!rows.length) {
+    content.innerHTML = '<div class="state">За цей період даних немає.<br>Додай записи в Google Таблицю або обери інший період.</div>';
+    return;
+  }
+
+  const totalBudget = rows.reduce((s, r) => s + r.budget, 0);
+  const totalLeads = rows.reduce((s, r) => s + r.leads, 0);
+  const totalTL = rows.reduce((s, r) => s + r.targetLeads, 0);
+  const totalPending = rows.reduce((s, r) => s + r.pending, 0);
+  const avgCpl = cpl(totalBudget, totalTL);
+  const anyApprox = totalPending > 0;
+
+  const rating = buildRating(rows);
+  const videos = aggregateVideos(rows);
+  const best = findBestVideo(videos);
+  const medals = ['🥇', '🥈', '🥉'];
+
+  let html = `
+    <div class="summary">
+      <div class="stat"><div class="label">Бюджет за період</div><div class="value">${fmtMoney(totalBudget)} <small>грн</small></div></div>
+      <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div>${totalPending > 0 ? '<div class="pending-note">⏳ ' + fmtInt(totalPending) + ' очікують результату</div>' : ''}</div>
+      <div class="stat"><div class="label">Цільові ліди</div><div class="value">${fmtInt(totalTL)}</div></div>
+      <div class="stat"><div class="label">Середня ціна ЦЛ</div><div class="value ${'cpl-' + cplClass(avgCpl)}">${cplLabel(avgCpl, anyApprox)} <small>грн</small></div></div>
+    </div>`;
+
+  if (best) {
+    const bApprox = best.pending > 0;
+    const nameHtml = best.link
+      ? '<a href="' + escapeAttr(best.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(best)) + '</a>'
+      : escapeHtml(videoTitle(best));
+    html += `
+    <div class="best-card">
+      <div class="crown">👑</div>
+      <div class="b-info">
+        <div class="b-eyebrow">Відео періоду</div>
+        <div class="b-name">${nameHtml}</div>
+        <div class="b-owner">${escapeHtml(best.owner)} · ${escapeHtml(best.page)} · ${escapeHtml(rangeLabel(best.dateFrom, best.dateTo))} · ${best.entries} ${pluralZapys(best.entries)}</div>
+      </div>
+      <div class="b-metrics">
+        <div class="b-metric"><div class="m-label">Ціна ЦЛ</div><div class="m-value ${'cpl-' + cplClass(best._cpl)}">${cplLabel(best._cpl, bApprox)} грн</div></div>
+        <div class="b-metric"><div class="m-label">ЦЛ</div><div class="m-value">${fmtInt(best.targetLeads)}</div></div>
+        <div class="b-metric"><div class="m-label">Бюджет</div><div class="m-value">${fmtMoney(best.budget)} грн</div></div>
+      </div>
+    </div>`;
+  }
+
+  // ===== Рейтинг команди =====
+  html += `
+    <div class="section-title">
+      <h2>Рейтинг команди</h2>
+      <span class="norm-legend"><span class="dot"></span>норма: ${CONFIG.PRICE_SUPER}–${CONFIG.PRICE_NORM} грн / ЦЛ</span>
+    </div>
+    <div class="rating">`;
+
+  rating.forEach((o, i) => {
+    const pages = Object.values(o.pages);
+    const showToggle = pages.length > 1;
+    const isOpen = expandedOwners.has(o.owner);
+    html += `
+      <div class="r-card ${i === 0 ? 'top' : ''}">
+        <div class="r-rank">${i < 3 ? '<span class="medal">' + medals[i] + '</span>' : (i + 1)}</div>
+        <div class="r-name">${escapeHtml(o.owner)}
+          <span class="videos">${o.videos} відео · ${fmtMoney(o.budget)} грн</span>
+          ${showToggle ? '<span class="owner-toggle" data-owner="' + escapeAttr(o.owner) + '">' + (isOpen ? '▴ згорнути' : '▾ по сторінках') + '</span>' : ''}
+        </div>
+        <div class="r-metric"><div class="m-label">Ціна ЦЛ</div><div class="m-value ${'cpl-' + cplClass(o.cpl)}">${cplLabel(o.cpl, o.approx)}</div></div>
+        <div class="r-metric"><div class="m-label">Цільові ліди</div><div class="m-value">${fmtInt(o.targetLeads)}</div></div>
+        <div class="r-metric"><div class="m-label">Ліди</div><div class="m-value">${fmtInt(o.leads)}</div>${o.pending > 0 ? '<div class="m-sub">⏳ ' + fmtInt(o.pending) + '</div>' : ''}</div>
+        <div class="r-metric"><div class="m-label">Конверсія в ЦЛ</div><div class="m-value">${o.conv === null ? '—' : o.conv.toFixed(0) + '%'}</div></div>
+        <div class="r-score">
+          <div class="s-top"><span>Коефіцієнт</span><b class="${kClass(o.k)}">${o.approx ? '≈' : ''}${o.k.toFixed(2)}</b></div>
+          <div class="score-bar"><div class="score-fill ${kClass(o.k)}" style="width:${Math.min(100, o.k / CONFIG.K_CAP * 100)}%"></div></div>
+        </div>
+      </div>`;
+    if (isOpen && showToggle) html += renderOwnerPages(o);
+  });
+
+  html += `</div>`;
+
+  // ===== Таблиця відео / записів =====
+  html += `
+    <div class="section-title">
+      <h2>${tableMode === 'videos' ? 'Рейтинг відео' : 'Всі записи'}</h2>
+      <span class="hint">${tableMode === 'videos'
+        ? videos.length + ' відео · ' + rows.length + ' ' + pluralZapys(rows.length) + ' · сортування за ціною ЦЛ'
+        : rows.length + ' ' + pluralZapys(rows.length) + ' · сортування за ціною ЦЛ'}</span>
+      <span class="mode-toggle">
+        <button class="${tableMode === 'videos' ? 'on' : ''}" onclick="setTableMode('videos')">По відео</button>
+        <button class="${tableMode === 'entries' ? 'on' : ''}" onclick="setTableMode('entries')">Записи</button>
+      </span>
+    </div>
+    <div class="table-card"><div class="table-scroll"><table>`;
+
+  const showPageCol = pageFilter === 'all' && pagesList().length > 1;
+  const colCount = showPageCol ? 9 : 8;
+
+  if (tableMode === 'videos') {
+    html += `
+      <thead><tr>
+        <th>Період</th><th>Відповідальний</th>${showPageCol ? '<th>Сторінка</th>' : ''}<th>Відео</th>
+        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Конверсія</th><th>Ціна ЦЛ</th>
+      </tr></thead><tbody>`;
+
+    const sortedV = videos.map(v => ({ ...v, _cpl: cpl(v.budget, v.targetLeads) }))
+      .sort((a, b) => (a._cpl ?? Infinity) - (b._cpl ?? Infinity));
+
+    sortedV.forEach(v => {
+      const conv = convOf(v.targetLeads, v.leads, v.pending);
+      const isBest = best && v.key === best.key;
+      const isOpen = expandedKeys.has(v.key);
+      const vApprox = v.pending > 0;
+      const crown = isBest ? '<span class="crown-mark">👑</span>' : '';
+      const nameCell = v.link
+        ? crown + '<a class="video-link video-name" href="' + escapeAttr(v.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(v)) + ' ↗</a>'
+        : crown + '<span class="video-name">' + escapeHtml(videoTitle(v)) + '</span>';
+      const toggle = v.entries > 1
+        ? '<span class="expand-toggle" data-key="' + escapeAttr(v.key) + '">' + (isOpen ? '▴ згорнути' : '▾ розгорнути') + '</span>'
+        : '';
+      html += `
+        <tr${isBest ? ' class="best-row"' : ''}>
+          <td class="num">${escapeHtml(rangeLabel(v.dateFrom, v.dateTo))}<span class="sub">${v.entries} ${pluralZapys(v.entries)}</span></td>
+          <td><span class="owner">${escapeHtml(v.owner)}</span></td>
+          ${showPageCol ? '<td>' + escapeHtml(v.page) + '</td>' : ''}
+          <td>${nameCell}${toggle ? '<br>' + toggle : ''}</td>
+          <td class="num">${fmtMoney(v.budget)}</td>
+          <td class="num">${fmtInt(v.leads)}${v.pending > 0 ? '<span class="sub pend">⏳ ' + fmtInt(v.pending) + '</span>' : ''}</td>
+          <td class="num">${fmtInt(v.targetLeads)}</td>
+          <td class="num">${conv === null ? '—' : conv.toFixed(0) + '%'}</td>
+          <td><span class="badge ${cplClass(v._cpl)}">${cplLabel(v._cpl, vApprox)}${v._cpl !== null ? ' грн' : ''}</span></td>
+        </tr>`;
+      if (isOpen) html += renderVideoEntries(v, colCount);
+    });
+  } else {
+    html += `
+      <thead><tr>
+        <th>Період</th><th>Відповідальний</th>${showPageCol ? '<th>Сторінка</th>' : ''}<th>Відео</th>
+        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Конверсія</th><th>Ціна ЦЛ</th>
+      </tr></thead><tbody>`;
+
+    const sorted = rows.map(r => ({ ...r, _cpl: cpl(r.budget, r.targetLeads) }))
+      .sort((a, b) => (a._cpl ?? Infinity) - (b._cpl ?? Infinity));
+
+    sorted.forEach(r => {
+      const conv = convOf(r.targetLeads, r.leads, r.pending);
+      const rApprox = r.pending > 0;
+      const nameCell = r.link
+        ? '<a class="video-link video-name" href="' + escapeAttr(r.link) + '" target="_blank" rel="noopener">' + escapeHtml(videoTitle(r)) + ' ↗</a>'
+        : '<span class="video-name">' + escapeHtml(videoTitle(r)) + '</span>';
+      html += `
+        <tr>
+          <td class="num">${escapeHtml(rangeLabel(r.dateFrom, r.dateTo))}</td>
+          <td><span class="owner">${escapeHtml(r.owner)}</span></td>
+          ${showPageCol ? '<td>' + escapeHtml(r.page) + '</td>' : ''}
+          <td>${nameCell}</td>
+          <td class="num">${fmtMoney(r.budget)}</td>
+          <td class="num">${fmtInt(r.leads)}${r.pending > 0 ? '<span class="sub pend">⏳ ' + fmtInt(r.pending) + '</span>' : ''}</td>
+          <td class="num">${fmtInt(r.targetLeads)}</td>
+          <td class="num">${conv === null ? '—' : conv.toFixed(0) + '%'}</td>
+          <td><span class="badge ${cplClass(r._cpl)}">${cplLabel(r._cpl, rApprox)}${r._cpl !== null ? ' грн' : ''}</span></td>
+        </tr>`;
+    });
+  }
+
+  html += `</tbody></table></div></div>`;
+  content.innerHTML = html;
+}
+
+// Розбивка людини по сторінках
+function renderOwnerPages(o) {
+  const pages = Object.values(o.pages);
+  const avgTL = pages.length ? pages.reduce((s, p) => s + p.targetLeads, 0) / pages.length : 0;
+
+  let inner = '<table class="day-table"><tr>' +
+    '<td class="dt-label">Сторінка</td><td class="dt-label">Бюджет</td><td class="dt-label">Ліди</td>' +
+    '<td class="dt-label">ЦЛ</td><td class="dt-label">Конверсія</td><td class="dt-label">Ціна ЦЛ</td><td class="dt-label">K</td></tr>';
+
+  pages.sort((a, b) => b.targetLeads - a.targetLeads).forEach(p => {
+    const pCpl = cpl(p.budget, p.targetLeads);
+    const pConv = convOf(p.targetLeads, p.leads, p.pending);
+    const pK = kOf(pCpl, p.targetLeads, avgTL);
+    const pApprox = p.pending > 0;
+    inner += `
+      <tr>
+        <td><b>${escapeHtml(p.page)}</b></td>
+        <td class="num">${fmtMoney(p.budget)} грн</td>
+        <td class="num">${fmtInt(p.leads)}${p.pending > 0 ? ' <span class="sub pend" style="display:inline">⏳' + fmtInt(p.pending) + '</span>' : ''}</td>
+        <td class="num">${fmtInt(p.targetLeads)}</td>
+        <td class="num">${pConv === null ? '—' : pConv.toFixed(0) + '%'}</td>
+        <td><span class="badge ${cplClass(pCpl)}">${cplLabel(pCpl, pApprox)}${pCpl !== null ? ' грн' : ''}</span></td>
+        <td class="num ${kClass(pK)}" style="font-weight:600">${pApprox ? '≈' : ''}${pK.toFixed(2)}</td>
+      </tr>`;
+  });
+  inner += '</table>';
+  return '<div class="r-detail">' + inner + '</div>';
+}
+
+// Розгортка відео по записах-проміжках
+function renderVideoEntries(v, colCount) {
+  const entries = [...v.entryRows].sort((a, b) => (a.dateFrom > b.dateFrom ? 1 : -1));
+
+  let maxLeads = -1, maxLeadsIdx = -1, maxConv = -1, maxConvIdx = -1;
+  entries.forEach((d, i) => {
+    if (d.leads > 0 && d.leads > maxLeads) { maxLeads = d.leads; maxLeadsIdx = i; }
+    const c = convOf(d.targetLeads, d.leads, d.pending);
+    if (c !== null && c > maxConv && d.targetLeads > 0) { maxConv = c; maxConvIdx = i; }
+  });
+
+  let inner = '<table class="day-table">';
+  entries.forEach((d, i) => {
+    const dCpl = cpl(d.budget, d.targetLeads);
+    const dConv = convOf(d.targetLeads, d.leads, d.pending);
+    const isL = i === maxLeadsIdx && entries.length > 1;
+    const isC = i === maxConvIdx && entries.length > 1;
+    const cls = (isL ? 'hl-leads ' : '') + (isC ? 'hl-conv' : '');
+    inner += `
+      <tr class="${cls.trim()}">
+        <td class="num">${escapeHtml(rangeLabel(d.dateFrom, d.dateTo))}</td>
+        <td class="num">${fmtMoney(d.budget)} грн</td>
+        <td class="num">${fmtInt(d.leads)} лід.${d.pending > 0 ? ' <span class="sub pend" style="display:inline">⏳' + fmtInt(d.pending) + '</span>' : ''}</td>
+        <td class="num">${fmtInt(d.targetLeads)} ЦЛ</td>
+        <td class="num">${dConv === null ? '—' : dConv.toFixed(0) + '%'}</td>
+        <td><span class="badge ${cplClass(dCpl)}">${cplLabel(dCpl, d.pending > 0)}${dCpl !== null ? ' грн' : ''}</span></td>
+      </tr>`;
+  });
+  inner += '</table>';
+
+  return '<tr class="detail-row"><td colspan="' + colCount + '">' + inner + '</td></tr>';
+}
+
+function setTableMode(mode) {
+  tableMode = mode;
+  render();
+}
+
+/* ============================================================
+   ФОРМАТУВАННЯ / ХЕЛПЕРИ
+   ============================================================ */
+function fmtMoney(v) { return Math.round(v).toLocaleString('uk-UA'); }
+function fmtInt(v) { return Number(v).toLocaleString('uk-UA'); }
+function fmtDate(s) {
+  const d = new Date(s);
+  return isNaN(d) ? s : d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+/* ============================================================
+   ПОДІЇ
+   ============================================================ */
+document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+document.getElementById('pageTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.page-tab');
+  if (!btn) return;
+  pageFilter = btn.dataset.page;
+  renderPageTabs();
+  render();
+});
+
+document.getElementById('content').addEventListener('click', e => {
+  const vt = e.target.closest('.expand-toggle');
+  if (vt) {
+    const key = vt.dataset.key;
+    expandedKeys.has(key) ? expandedKeys.delete(key) : expandedKeys.add(key);
+    render();
+    return;
+  }
+  const ot = e.target.closest('.owner-toggle');
+  if (ot) {
+    const owner = ot.dataset.owner;
+    expandedOwners.has(owner) ? expandedOwners.delete(owner) : expandedOwners.add(owner);
+    render();
+  }
+});
 
 document.getElementById('calBtn').addEventListener('click', e => {
   e.stopPropagation();
@@ -946,21 +1059,7 @@ document.getElementById('calGrid').addEventListener('click', e => {
 });
 document.getElementById('calClear').addEventListener('click', clearCustomRange);
 
-/* ============================================================
-   ПОДІЇ
-   ============================================================ */
-document.getElementById('refreshBtn').addEventListener('click', loadData);
-
-// Розгортання відео по днях (делегування, бо таблиця перерендерюється)
-document.getElementById('content').addEventListener('click', e => {
-  const t = e.target.closest('.expand-toggle');
-  if (!t) return;
-  const key = t.dataset.key;
-  expandedKeys.has(key) ? expandedKeys.delete(key) : expandedKeys.add(key);
-  render();
-});
-
-// ===== Telegram Mini App: розгортання на весь екран =====
+// ===== Telegram Mini App =====
 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData !== undefined) {
   try {
     Telegram.WebApp.ready();
