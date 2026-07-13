@@ -69,7 +69,9 @@
   .refresh-btn:hover { background: var(--card-hover); color: var(--text); }
 
   /* ===== Таби сторінок ===== */
-  .page-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+  .page-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  #ownerTabs { margin-bottom: 22px; }
+  #ownerTabs:empty { margin-bottom: 12px; }
   .page-tab {
     font-family: 'Manrope', sans-serif;
     background: var(--card); border: 1px solid var(--card-border);
@@ -401,6 +403,7 @@
   </header>
 
   <div class="page-tabs" id="pageTabs"></div>
+  <div class="page-tabs" id="ownerTabs"></div>
 
   <div id="content">
     <div class="state"><div class="spinner"></div>Завантаження даних…</div>
@@ -412,7 +415,7 @@
 /* ============================================================
    НАЛАШТУВАННЯ
    ============================================================ */
-const API_URL = 'https://script.google.com/macros/s/AKfycbyy2f7GPEcNm-J52b2hUz_W6df2xfszfIkLtwbqN7cEu0EIiy4jlYAze0mDvoNdAR3jEg/exec'; // ⚠️ перевір: URL твого АКТИВНОГО деплою
+const API_URL = 'https://script.google.com/macros/s/AKfycbznFEdPPszEhhZ2ObsKVSuvgxW3sczPODYPP_c7RZRP5ql_1SKjli_HqOvsQMpLP9F1Gw/exec'; // ⚠️ перевір: URL твого АКТИВНОГО деплою
 
 const CONFIG = {
   PRICE_SUPER: 260,   // ≤ 260 грн — супер (колір бейджа)
@@ -431,6 +434,7 @@ let calPickStart = null;
 let calMonth = null;
 let tableMode = 'videos';   // 'videos' | 'entries'
 let pageFilter = 'all';     // 'all' | назва сторінки
+let ownerFilter = 'all';    // 'all' | ім'я відповідального
 const expandedKeys = new Set();   // розгорнуті відео
 const expandedOwners = new Set(); // розгорнуті люди (по сторінках)
 
@@ -477,6 +481,7 @@ function overlaps(r) {
 function filteredRows() {
   let rows = customRange ? allRows.filter(overlaps) : allRows.slice();
   if (pageFilter !== 'all') rows = rows.filter(r => r.page === pageFilter);
+  if (ownerFilter !== 'all') rows = rows.filter(r => r.owner === ownerFilter);
   return rows;
 }
 
@@ -623,10 +628,28 @@ function pagesList() {
 function renderPageTabs() {
   const pages = pagesList();
   const el = document.getElementById('pageTabs');
-  if (pages.length < 2) { el.innerHTML = ''; return; }
-  let html = '<button class="page-tab ' + (pageFilter === 'all' ? 'on' : '') + '" data-page="all">Всі сторінки</button>';
-  pages.forEach(p => {
-    html += '<button class="page-tab ' + (pageFilter === p ? 'on' : '') + '" data-page="' + escapeAttr(p) + '">' + escapeHtml(p) + '</button>';
+  if (pages.length < 2) { el.innerHTML = ''; }
+  else {
+    let html = '<button class="page-tab ' + (pageFilter === 'all' ? 'on' : '') + '" data-page="all">Всі сторінки</button>';
+    pages.forEach(p => {
+      html += '<button class="page-tab ' + (pageFilter === p ? 'on' : '') + '" data-page="' + escapeAttr(p) + '">' + escapeHtml(p) + '</button>';
+    });
+    el.innerHTML = html;
+  }
+  renderOwnerTabs();
+}
+
+function ownersList() {
+  return [...new Set(allRows.map(r => r.owner))].sort((a, b) => a.localeCompare(b, 'uk'));
+}
+
+function renderOwnerTabs() {
+  const owners = ownersList();
+  const el = document.getElementById('ownerTabs');
+  if (owners.length < 2) { el.innerHTML = ''; return; }
+  let html = '<button class="page-tab ' + (ownerFilter === 'all' ? 'on' : '') + '" data-owner="all">👤 Всі відповідальні</button>';
+  owners.forEach(o => {
+    html += '<button class="page-tab ' + (ownerFilter === o ? 'on' : '') + '" data-owner="' + escapeAttr(o) + '">' + escapeHtml(o) + '</button>';
   });
   el.innerHTML = html;
 }
@@ -1019,6 +1042,14 @@ document.getElementById('pageTabs').addEventListener('click', e => {
   if (!btn) return;
   pageFilter = btn.dataset.page;
   renderPageTabs();
+  render();
+});
+
+document.getElementById('ownerTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.page-tab');
+  if (!btn) return;
+  ownerFilter = btn.dataset.owner;
+  renderOwnerTabs();
   render();
 });
 
