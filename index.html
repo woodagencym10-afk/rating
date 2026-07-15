@@ -955,7 +955,7 @@ function render() {
         <div class="r-metric"><div class="m-label">Цільові ліди</div><div class="m-value">${fmtInt(o.targetLeads)}</div></div>
         <div class="r-metric"><div class="m-label">Ліди</div><div class="m-value">${fmtInt(o.leads)}</div>${o.pending > 0 ? '<div class="m-sub">⏳ ' + fmtInt(o.pending) + '</div>' : ''}</div>
         <div class="r-metric"><div class="m-label">Конверсія в ЦЛ</div><div class="m-value">${o.conv === null ? '—' : o.conv.toFixed(0) + '%'}</div></div>
-        <div class="r-metric"><div class="m-label">Продажі</div><div class="m-value">${fmtInt(o.sales)}</div></div>
+        <div class="r-metric"><div class="m-label">Продажі</div><div class="m-value">${fmtInt(o.sales)}</div>${isAdmin && o.revenue > 0 ? '<div class="m-sub" style="color:var(--accent)">' + fmtMoney(o.revenue) + ' грн</div>' : ''}</div>
         ${isAdmin ? '<div class="r-metric"><div class="m-label">Бонус</div><div class="m-value cpl-super">' + fmtMoney(o.bonus) + ' грн</div></div>' : ''}
         <div class="r-score">
           <div class="s-top"><span>Коефіцієнт</span><b class="${kClass(o.k)}">${o.approx ? '≈' : ''}${o.k.toFixed(2)}</b></div>
