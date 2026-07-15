@@ -348,6 +348,23 @@
     text-transform: uppercase; letter-spacing: 0.06em;
   }
 
+  /* ===== Адмін-панель відсотка ===== */
+  .admin-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: rgba(0,212,170,0.06); border: 1px dashed rgba(0,212,170,0.35);
+    border-radius: var(--radius); padding: 12px 16px; margin-bottom: 24px;
+  }
+  .admin-bar .ab-label { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .admin-bar input {
+    font-family: 'DM Mono', monospace; font-size: 14px;
+    background: var(--card); border: 1px solid var(--card-border);
+    color: var(--text); border-radius: var(--radius-sm);
+    padding: 8px 12px; width: 90px; outline: none;
+  }
+  .admin-bar input:focus { border-color: rgba(0,212,170,0.5); }
+  .admin-bar .hint { font-size: 11px; color: var(--text-faint); }
+  .pct-edit { margin-left: 8px; }
+
   /* ===== States ===== */
   .state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: 14px; }
   .state.error { color: var(--bad); }
@@ -431,7 +448,7 @@
 /* ============================================================
    НАЛАШТУВАННЯ
    ============================================================ */
-const API_URL = 'https://script.google.com/macros/s/AKfycbyy2f7GPEcNm-J52b2hUz_W6df2xfszfIkLtwbqN7cEu0EIiy4jlYAze0mDvoNdAR3jEg/exec'; // ⚠️ перевір: URL твого АКТИВНОГО деплою
+const API_URL = 'https://script.google.com/macros/s/AKfycbznFEdPPszEhhZ2ObsKVSuvgxW3sczPODYPP_c7RZRP5ql_1SKjli_HqOvsQMpLP9F1Gw/exec'; // ⚠️ перевір: URL твого АКТИВНОГО деплою
 
 const CONFIG = {
   PRICE_SUPER: 260,   // ≤ 260 грн — супер (колір бейджа)
@@ -872,7 +889,18 @@ function render() {
   const best = findBestVideo(videos);
   const medals = ['🥇', '🥈', '🥉'];
 
-  let html = `
+  let html = '';
+  if (isAdmin) {
+    html += `
+    <div class="admin-bar">
+      <span class="ab-label">💰 Бонусний відсоток для вибірки:</span>
+      <input type="number" id="pctInput" step="0.1" min="0" placeholder="напр. 2">
+      <button class="refresh-btn" onclick="applyPct()">Застосувати</button>
+      <span class="hint">проставиться всім записам поточного періоду з урахуванням фільтрів (сторінка, людина, статус, таргетолог)</span>
+    </div>`;
+  }
+
+  html += `
     <div class="summary">
       <div class="stat"><div class="label">Бюджет за період</div><div class="value">${fmtMoney(totalBudget)} <small>грн</small></div></div>
       <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div>${totalPending > 0 ? '<div class="pending-note">⏳ ' + fmtInt(totalPending) + ' очікують результату</div>' : ''}</div>
@@ -963,6 +991,9 @@ function render() {
         <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Продажі</th>${isAdmin ? '<th>Сума продаж</th>' : ''}<th>Конверсія</th><th>Ціна ЦЛ</th>
       </tr></thead><tbody>`;
 
+    videosByKey = {};
+    videos.forEach(v => { videosByKey[v.key] = v; });
+
     const sortedV = videos.map(v => ({ ...v, _cpl: cpl(v.budget, v.targetLeads) }))
       .sort((a, b) => (a._cpl ?? Infinity) - (b._cpl ?? Infinity));
 
@@ -988,7 +1019,7 @@ function render() {
           <td class="num">${fmtInt(v.leads)}${v.pending > 0 ? '<span class="sub pend">⏳ ' + fmtInt(v.pending) + '</span>' : ''}</td>
           <td class="num">${fmtInt(v.targetLeads)}</td>
           <td class="num">${fmtInt(v.sales)}</td>
-          ${isAdmin ? '<td class="num">' + fmtMoney(v.revenue) + (v.bonus > 0 ? '<span class="sub" style="color:var(--accent)">бонус ' + fmtMoney(v.bonus) + ' грн</span>' : '') + '</td>' : ''}
+          ${isAdmin ? '<td class="num">' + fmtMoney(v.revenue) + '<span class="expand-toggle pct-edit" data-pct-key="' + escapeAttr(v.key) + '">✎ %</span>' + (v.bonus > 0 ? '<span class="sub" style="color:var(--accent)">бонус ' + fmtMoney(v.bonus) + ' грн</span>' : '') + '</td>' : ''}
           <td class="num">${conv === null ? '—' : conv.toFixed(0) + '%'}</td>
           <td><span class="badge ${cplClass(v._cpl)}">${cplLabel(v._cpl, vApprox)}${v._cpl !== null ? ' грн' : ''}</span></td>
         </tr>`;
@@ -1102,6 +1133,71 @@ function setTableMode(mode) {
 }
 
 /* ============================================================
+   АДМІН: ВИСТАВЛЕННЯ ВІДСОТКА З ДАШБОРДУ
+   ============================================================ */
+let videosByKey = {};
+
+async function postApi(payload) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // без preflight
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+function currentFilter() {
+  return {
+    from: customRange ? customRange.from : null,
+    to: customRange ? customRange.to : null,
+    page: pageFilter,
+    owner: ownerFilter,
+    status: statusFilter,
+    targ: targFilter
+  };
+}
+
+async function applyPct() {
+  const input = document.getElementById('pctInput');
+  const pct = Number(input.value);
+  if (isNaN(pct) || input.value === '') { alert('Впиши число, наприклад 2 або 1.5'); return; }
+
+  const n = filteredRows().length;
+  const label = customRange ? rangeLabel(customRange.from, customRange.to) : 'весь час';
+  if (!confirm('Виставити ' + pct + '% для ' + n + ' ' + pluralZapys(n) + ' (' + label + ', з урахуванням фільтрів)?')) return;
+
+  try {
+    const res = await postApi({ action: 'setPct', key: adminKey, pct: pct, filter: currentFilter() });
+    if (!res.ok) throw new Error(res.error || 'Помилка');
+    alert('Оновлено записів: ' + res.updated);
+    loadData();
+  } catch (err) {
+    alert('Не вдалося: ' + (err.message || err));
+  }
+}
+
+async function editVideoPct(key) {
+  const v = videosByKey[key];
+  if (!v) return;
+  const cur = v.entryRows.map(r => r.pct || 0);
+  const hint = [...new Set(cur)].join(' / ');
+  const val = prompt('Відсоток для «' + videoTitle(v) + '» у поточному періоді (зараз: ' + hint + '%):', hint.includes('/') ? '' : hint);
+  if (val === null) return;
+  const pct = Number(String(val).replace(',', '.'));
+  if (isNaN(pct) || val === '') { alert('Впиши число, наприклад 2 або 1.5'); return; }
+
+  try {
+    const f = currentFilter();
+    f.video = { link: v.link, owner: v.owner, name: v.name, page: v.page };
+    const res = await postApi({ action: 'setPct', key: adminKey, pct: pct, filter: f });
+    if (!res.ok) throw new Error(res.error || 'Помилка');
+    loadData();
+  } catch (err) {
+    alert('Не вдалося: ' + (err.message || err));
+  }
+}
+
+/* ============================================================
    ФОРМАТУВАННЯ / ХЕЛПЕРИ
    ============================================================ */
 function fmtMoney(v) { return Math.round(v).toLocaleString('uk-UA'); }
@@ -1153,6 +1249,11 @@ document.getElementById('targTabs').addEventListener('click', e => {
 });
 
 document.getElementById('content').addEventListener('click', e => {
+  const pe = e.target.closest('.pct-edit');
+  if (pe) {
+    editVideoPct(pe.dataset.pctKey);
+    return;
+  }
   const vt = e.target.closest('.expand-toggle');
   if (vt) {
     const key = vt.dataset.key;
