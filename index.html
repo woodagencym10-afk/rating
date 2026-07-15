@@ -69,9 +69,19 @@
   .refresh-btn:hover { background: var(--card-hover); color: var(--text); }
 
   /* ===== Таби сторінок ===== */
+  .tabs-stack { margin-bottom: 22px; }
   .page-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-  #ownerTabs { margin-bottom: 22px; }
-  #ownerTabs:empty { margin-bottom: 12px; }
+  .page-tabs:empty { margin-bottom: 0; }
+
+  .st-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600;
+  }
+  .st-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; }
+  .st-active { color: var(--good); } .st-active::before { background: var(--good); }
+  .st-stopped { color: var(--text-faint); } .st-stopped::before { background: var(--text-faint); }
+  .st-test { color: var(--warn); } .st-test::before { background: var(--warn); }
+  .st-other { color: var(--text-dim); } .st-other::before { background: var(--text-dim); }
   .page-tab {
     font-family: 'Manrope', sans-serif;
     background: var(--card); border: 1px solid var(--card-border);
@@ -149,7 +159,8 @@
   .cal-clear:hover { color: var(--bad); background: var(--card); }
 
   /* ===== Summary ===== */
-  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 28px; }
+  body.admin .summary { grid-template-columns: repeat(6, 1fr); }
   .stat {
     background: var(--card); border: 1px solid var(--card-border);
     border-radius: var(--radius); padding: 16px 18px;
@@ -202,7 +213,7 @@
   .rating { display: flex; flex-direction: column; gap: 10px; margin-bottom: 36px; }
   .r-card {
     display: grid;
-    grid-template-columns: 52px 1.4fr repeat(4, 1fr) 1.2fr;
+    grid-template-columns: 52px 1.2fr repeat(5, 0.9fr) 1.1fr;
     gap: 14px; align-items: center;
     background: var(--card); border: 1px solid var(--card-border);
     border-radius: var(--radius); padding: 16px 20px;
@@ -210,6 +221,7 @@
     transition: all 0.18s ease;
   }
   .r-card:hover { background: var(--card-hover); }
+  body.admin .r-card { grid-template-columns: 52px 1.2fr repeat(6, 0.85fr) 1.1fr; }
   .r-card.top {
     border-color: rgba(0,212,170,0.35);
     background: linear-gradient(90deg, rgba(0,212,170,0.08), var(--card) 55%);
@@ -402,8 +414,12 @@
     </div>
   </header>
 
-  <div class="page-tabs" id="pageTabs"></div>
-  <div class="page-tabs" id="ownerTabs"></div>
+  <div class="tabs-stack">
+    <div class="page-tabs" id="pageTabs"></div>
+    <div class="page-tabs" id="ownerTabs"></div>
+    <div class="page-tabs" id="statusTabs"></div>
+    <div class="page-tabs" id="targTabs"></div>
+  </div>
 
   <div id="content">
     <div class="state"><div class="spinner"></div>Завантаження даних…</div>
@@ -427,6 +443,11 @@ const CONFIG = {
   K_CAP:         1.5, // стеля компонентів K
   BEST_MIN_TL:   3    // мінімум ЦЛ, щоб відео могло стати "Відео періоду"
 };
+// Відсоток бонусу тепер задається ПО КОЖНОМУ ВІДЕО в таблиці (колонка "Відсоток, %").
+// Адмін-режим: відкрий дашборд з #key=ТВІЙ_ПАРОЛЬ у кінці посилання.
+
+const adminKey = (location.hash.match(/key=([^&\s]+)/) || [])[1] || '';
+let isAdmin = false;
 
 let allRows = [];
 let customRange = null;
@@ -435,6 +456,8 @@ let calMonth = null;
 let tableMode = 'videos';   // 'videos' | 'entries'
 let pageFilter = 'all';     // 'all' | назва сторінки
 let ownerFilter = 'all';    // 'all' | ім'я відповідального
+let statusFilter = 'all';   // 'all' | статус
+let targFilter = 'all';     // 'all' | таргетолог
 const expandedKeys = new Set();   // розгорнуті відео
 const expandedOwners = new Set(); // розгорнуті люди (по сторінках)
 
@@ -445,9 +468,12 @@ async function loadData() {
   const content = document.getElementById('content');
   content.innerHTML = '<div class="state"><div class="spinner"></div>Завантаження даних…</div>';
   try {
-    const res = await fetch(API_URL);
+    const url = API_URL + (adminKey ? (API_URL.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(adminKey) : '');
+    const res = await fetch(url);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Помилка API');
+    isAdmin = data.admin === true;
+    document.body.classList.toggle('admin', isAdmin);
     allRows = (data.rows || []).filter(r => r.dateFrom);
     customRange = customRange || defaultRange();
     if (customRange) updateCalLabel();
@@ -482,7 +508,18 @@ function filteredRows() {
   let rows = customRange ? allRows.filter(overlaps) : allRows.slice();
   if (pageFilter !== 'all') rows = rows.filter(r => r.page === pageFilter);
   if (ownerFilter !== 'all') rows = rows.filter(r => r.owner === ownerFilter);
+  if (statusFilter !== 'all') rows = rows.filter(r => (r.status || '') === statusFilter);
+  if (targFilter !== 'all') rows = rows.filter(r => (r.targ || '') === targFilter);
   return rows;
+}
+
+function statusClass(s) {
+  const l = (s || '').toLowerCase();
+  if (!l) return '';
+  if (l.includes('актив')) return 'st-active';
+  if (l.includes('зупин') || l.includes('стоп')) return 'st-stopped';
+  if (l.includes('тест')) return 'st-test';
+  return 'st-other';
 }
 
 /* ============================================================
@@ -537,6 +574,9 @@ function sumInto(target, r) {
   target.leads += r.leads;
   target.targetLeads += r.targetLeads;
   target.pending += r.pending;
+  target.sales += (r.sales || 0);
+  target.revenue += (r.revenue || 0);
+  target.bonus += (r.revenue || 0) * (r.pct || 0) / 100;
 }
 
 function aggregateVideos(rows) {
@@ -544,12 +584,14 @@ function aggregateVideos(rows) {
   rows.forEach(r => {
     const k = vidKey(r);
     const v = map[k] || (map[k] = {
-      key: k, owner: r.owner, page: r.page, name: r.name || '', link: r.link || '',
-      budget: 0, leads: 0, targetLeads: 0, pending: 0, entries: 0,
+      key: k, owner: r.owner, page: r.page, name: r.name || '', link: r.link || '', status: '', targ: '',
+      budget: 0, leads: 0, targetLeads: 0, pending: 0, sales: 0, revenue: 0, bonus: 0, entries: 0,
       dateFrom: r.dateFrom, dateTo: r.dateTo, entryRows: []
     });
     if (!v.name && r.name) v.name = r.name;
     if (!v.link && r.link) v.link = r.link;
+    if (!v.targ && r.targ) v.targ = r.targ;
+    if (r.dateTo >= (v._stDate || '')) { v.status = r.status || v.status || ''; v._stDate = r.dateTo; }
     sumInto(v, r);
     v.entries++;
     v.entryRows.push(r);
@@ -563,12 +605,12 @@ function buildRating(rows) {
   const byOwner = {};
   rows.forEach(r => {
     const o = byOwner[r.owner] || (byOwner[r.owner] = {
-      owner: r.owner, budget: 0, leads: 0, targetLeads: 0, pending: 0,
+      owner: r.owner, budget: 0, leads: 0, targetLeads: 0, pending: 0, sales: 0, revenue: 0, bonus: 0,
       vidKeys: new Set(), pages: {}
     });
     sumInto(o, r);
     o.vidKeys.add(vidKey(r));
-    const p = o.pages[r.page] || (o.pages[r.page] = { page: r.page, budget: 0, leads: 0, targetLeads: 0, pending: 0 });
+    const p = o.pages[r.page] || (o.pages[r.page] = { page: r.page, budget: 0, leads: 0, targetLeads: 0, pending: 0, sales: 0, revenue: 0, bonus: 0 });
     sumInto(p, r);
   });
 
@@ -646,10 +688,36 @@ function ownersList() {
 function renderOwnerTabs() {
   const owners = ownersList();
   const el = document.getElementById('ownerTabs');
-  if (owners.length < 2) { el.innerHTML = ''; return; }
-  let html = '<button class="page-tab ' + (ownerFilter === 'all' ? 'on' : '') + '" data-owner="all">👤 Всі відповідальні</button>';
-  owners.forEach(o => {
-    html += '<button class="page-tab ' + (ownerFilter === o ? 'on' : '') + '" data-owner="' + escapeAttr(o) + '">' + escapeHtml(o) + '</button>';
+  if (owners.length < 2) { el.innerHTML = ''; }
+  else {
+    let html = '<button class="page-tab ' + (ownerFilter === 'all' ? 'on' : '') + '" data-owner="all">👤 Всі відповідальні</button>';
+    owners.forEach(o => {
+      html += '<button class="page-tab ' + (ownerFilter === o ? 'on' : '') + '" data-owner="' + escapeAttr(o) + '">' + escapeHtml(o) + '</button>';
+    });
+    el.innerHTML = html;
+  }
+  renderStatusTabs();
+  renderTargTabs();
+}
+
+function renderStatusTabs() {
+  const statuses = [...new Set(allRows.map(r => r.status).filter(Boolean))].sort();
+  const el = document.getElementById('statusTabs');
+  if (statuses.length < 2) { el.innerHTML = ''; return; }
+  let html = '<button class="page-tab ' + (statusFilter === 'all' ? 'on' : '') + '" data-status="all">Всі статуси</button>';
+  statuses.forEach(s => {
+    html += '<button class="page-tab ' + (statusFilter === s ? 'on' : '') + '" data-status="' + escapeAttr(s) + '">' + escapeHtml(s) + '</button>';
+  });
+  el.innerHTML = html;
+}
+
+function renderTargTabs() {
+  const targs = [...new Set(allRows.map(r => r.targ).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'uk'));
+  const el = document.getElementById('targTabs');
+  if (targs.length < 2) { el.innerHTML = ''; return; }
+  let html = '<button class="page-tab ' + (targFilter === 'all' ? 'on' : '') + '" data-targ="all">🎯 Всі таргетологи</button>';
+  targs.forEach(t => {
+    html += '<button class="page-tab ' + (targFilter === t ? 'on' : '') + '" data-targ="' + escapeAttr(t) + '">' + escapeHtml(t) + '</button>';
   });
   el.innerHTML = html;
 }
@@ -793,6 +861,9 @@ function render() {
   const totalLeads = rows.reduce((s, r) => s + r.leads, 0);
   const totalTL = rows.reduce((s, r) => s + r.targetLeads, 0);
   const totalPending = rows.reduce((s, r) => s + r.pending, 0);
+  const totalSales = rows.reduce((s, r) => s + (r.sales || 0), 0);
+  const totalRevenue = rows.reduce((s, r) => s + (r.revenue || 0), 0);
+  const totalBonus = rows.reduce((s, r) => s + (r.revenue || 0) * (r.pct || 0) / 100, 0);
   const avgCpl = cpl(totalBudget, totalTL);
   const anyApprox = totalPending > 0;
 
@@ -806,6 +877,8 @@ function render() {
       <div class="stat"><div class="label">Бюджет за період</div><div class="value">${fmtMoney(totalBudget)} <small>грн</small></div></div>
       <div class="stat"><div class="label">Ліди</div><div class="value">${fmtInt(totalLeads)}</div>${totalPending > 0 ? '<div class="pending-note">⏳ ' + fmtInt(totalPending) + ' очікують результату</div>' : ''}</div>
       <div class="stat"><div class="label">Цільові ліди</div><div class="value">${fmtInt(totalTL)}</div></div>
+      <div class="stat"><div class="label">Продажі</div><div class="value">${fmtInt(totalSales)}</div></div>
+      ${isAdmin ? '<div class="stat"><div class="label">Сума продаж</div><div class="value">' + fmtMoney(totalRevenue) + ' <small>грн</small></div>' + (totalBonus > 0 ? '<div class="pending-note" style="color:var(--accent)">бонуси: ' + fmtMoney(totalBonus) + ' грн</div>' : '') + '</div>' : ''}
       <div class="stat"><div class="label">Середня ціна ЦЛ</div><div class="value ${'cpl-' + cplClass(avgCpl)}">${cplLabel(avgCpl, anyApprox)} <small>грн</small></div></div>
     </div>`;
 
@@ -825,6 +898,7 @@ function render() {
       <div class="b-metrics">
         <div class="b-metric"><div class="m-label">Ціна ЦЛ</div><div class="m-value ${'cpl-' + cplClass(best._cpl)}">${cplLabel(best._cpl, bApprox)} грн</div></div>
         <div class="b-metric"><div class="m-label">ЦЛ</div><div class="m-value">${fmtInt(best.targetLeads)}</div></div>
+        <div class="b-metric"><div class="m-label">Продажі</div><div class="m-value">${fmtInt(best.sales)}${isAdmin && best.revenue > 0 ? ' · ' + fmtMoney(best.revenue) + ' грн' : ''}</div></div>
         <div class="b-metric"><div class="m-label">Бюджет</div><div class="m-value">${fmtMoney(best.budget)} грн</div></div>
       </div>
     </div>`;
@@ -853,6 +927,8 @@ function render() {
         <div class="r-metric"><div class="m-label">Цільові ліди</div><div class="m-value">${fmtInt(o.targetLeads)}</div></div>
         <div class="r-metric"><div class="m-label">Ліди</div><div class="m-value">${fmtInt(o.leads)}</div>${o.pending > 0 ? '<div class="m-sub">⏳ ' + fmtInt(o.pending) + '</div>' : ''}</div>
         <div class="r-metric"><div class="m-label">Конверсія в ЦЛ</div><div class="m-value">${o.conv === null ? '—' : o.conv.toFixed(0) + '%'}</div></div>
+        <div class="r-metric"><div class="m-label">Продажі</div><div class="m-value">${fmtInt(o.sales)}</div></div>
+        ${isAdmin ? '<div class="r-metric"><div class="m-label">Бонус</div><div class="m-value cpl-super">' + fmtMoney(o.bonus) + ' грн</div></div>' : ''}
         <div class="r-score">
           <div class="s-top"><span>Коефіцієнт</span><b class="${kClass(o.k)}">${o.approx ? '≈' : ''}${o.k.toFixed(2)}</b></div>
           <div class="score-bar"><div class="score-fill ${kClass(o.k)}" style="width:${Math.min(100, o.k / CONFIG.K_CAP * 100)}%"></div></div>
@@ -878,13 +954,13 @@ function render() {
     <div class="table-card"><div class="table-scroll"><table>`;
 
   const showPageCol = pageFilter === 'all' && pagesList().length > 1;
-  const colCount = showPageCol ? 9 : 8;
+  const colCount = 9 + (showPageCol ? 1 : 0) + (isAdmin ? 1 : 0);
 
   if (tableMode === 'videos') {
     html += `
       <thead><tr>
         <th>Період</th><th>Відповідальний</th>${showPageCol ? '<th>Сторінка</th>' : ''}<th>Відео</th>
-        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Конверсія</th><th>Ціна ЦЛ</th>
+        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Продажі</th>${isAdmin ? '<th>Сума продаж</th>' : ''}<th>Конверсія</th><th>Ціна ЦЛ</th>
       </tr></thead><tbody>`;
 
     const sortedV = videos.map(v => ({ ...v, _cpl: cpl(v.budget, v.targetLeads) }))
@@ -905,12 +981,14 @@ function render() {
       html += `
         <tr${isBest ? ' class="best-row"' : ''}>
           <td class="num">${escapeHtml(rangeLabel(v.dateFrom, v.dateTo))}<span class="sub">${v.entries} ${pluralZapys(v.entries)}</span></td>
-          <td><span class="owner">${escapeHtml(v.owner)}</span></td>
+          <td><span class="owner">${escapeHtml(v.owner)}</span>${v.targ ? '<span class="sub">🎯 ' + escapeHtml(v.targ) + '</span>' : ''}</td>
           ${showPageCol ? '<td>' + escapeHtml(v.page) + '</td>' : ''}
-          <td>${nameCell}${toggle ? '<br>' + toggle : ''}</td>
+          <td>${nameCell}${v.status ? '<span class="sub st-badge ' + statusClass(v.status) + '">' + escapeHtml(v.status) + '</span>' : ''}${toggle ? '<br>' + toggle : ''}</td>
           <td class="num">${fmtMoney(v.budget)}</td>
           <td class="num">${fmtInt(v.leads)}${v.pending > 0 ? '<span class="sub pend">⏳ ' + fmtInt(v.pending) + '</span>' : ''}</td>
           <td class="num">${fmtInt(v.targetLeads)}</td>
+          <td class="num">${fmtInt(v.sales)}</td>
+          ${isAdmin ? '<td class="num">' + fmtMoney(v.revenue) + (v.bonus > 0 ? '<span class="sub" style="color:var(--accent)">бонус ' + fmtMoney(v.bonus) + ' грн</span>' : '') + '</td>' : ''}
           <td class="num">${conv === null ? '—' : conv.toFixed(0) + '%'}</td>
           <td><span class="badge ${cplClass(v._cpl)}">${cplLabel(v._cpl, vApprox)}${v._cpl !== null ? ' грн' : ''}</span></td>
         </tr>`;
@@ -920,7 +998,7 @@ function render() {
     html += `
       <thead><tr>
         <th>Період</th><th>Відповідальний</th>${showPageCol ? '<th>Сторінка</th>' : ''}<th>Відео</th>
-        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Конверсія</th><th>Ціна ЦЛ</th>
+        <th>Бюджет</th><th>Ліди</th><th>ЦЛ</th><th>Продажі</th>${isAdmin ? '<th>Сума продаж</th>' : ''}<th>Конверсія</th><th>Ціна ЦЛ</th>
       </tr></thead><tbody>`;
 
     const sorted = rows.map(r => ({ ...r, _cpl: cpl(r.budget, r.targetLeads) }))
@@ -935,12 +1013,14 @@ function render() {
       html += `
         <tr>
           <td class="num">${escapeHtml(rangeLabel(r.dateFrom, r.dateTo))}</td>
-          <td><span class="owner">${escapeHtml(r.owner)}</span></td>
+          <td><span class="owner">${escapeHtml(r.owner)}</span>${r.targ ? '<span class="sub">🎯 ' + escapeHtml(r.targ) + '</span>' : ''}</td>
           ${showPageCol ? '<td>' + escapeHtml(r.page) + '</td>' : ''}
-          <td>${nameCell}</td>
+          <td>${nameCell}${r.status ? '<span class="sub st-badge ' + statusClass(r.status) + '">' + escapeHtml(r.status) + '</span>' : ''}</td>
           <td class="num">${fmtMoney(r.budget)}</td>
           <td class="num">${fmtInt(r.leads)}${r.pending > 0 ? '<span class="sub pend">⏳ ' + fmtInt(r.pending) + '</span>' : ''}</td>
           <td class="num">${fmtInt(r.targetLeads)}</td>
+          <td class="num">${fmtInt(r.sales || 0)}</td>
+          ${isAdmin ? '<td class="num">' + fmtMoney(r.revenue || 0) + ((r.pct || 0) > 0 ? '<span class="sub">' + r.pct + '%</span>' : '') + '</td>' : ''}
           <td class="num">${conv === null ? '—' : conv.toFixed(0) + '%'}</td>
           <td><span class="badge ${cplClass(r._cpl)}">${cplLabel(r._cpl, rApprox)}${r._cpl !== null ? ' грн' : ''}</span></td>
         </tr>`;
@@ -958,7 +1038,7 @@ function renderOwnerPages(o) {
 
   let inner = '<table class="day-table"><tr>' +
     '<td class="dt-label">Сторінка</td><td class="dt-label">Бюджет</td><td class="dt-label">Ліди</td>' +
-    '<td class="dt-label">ЦЛ</td><td class="dt-label">Конверсія</td><td class="dt-label">Ціна ЦЛ</td><td class="dt-label">K</td></tr>';
+    '<td class="dt-label">ЦЛ</td><td class="dt-label">Продажі</td>' + (isAdmin ? '<td class="dt-label">Сума продаж</td><td class="dt-label">Бонус</td>' : '') + '<td class="dt-label">Конверсія</td><td class="dt-label">Ціна ЦЛ</td><td class="dt-label">K</td></tr>';
 
   pages.sort((a, b) => b.targetLeads - a.targetLeads).forEach(p => {
     const pCpl = cpl(p.budget, p.targetLeads);
@@ -971,6 +1051,8 @@ function renderOwnerPages(o) {
         <td class="num">${fmtMoney(p.budget)} грн</td>
         <td class="num">${fmtInt(p.leads)}${p.pending > 0 ? ' <span class="sub pend" style="display:inline">⏳' + fmtInt(p.pending) + '</span>' : ''}</td>
         <td class="num">${fmtInt(p.targetLeads)}</td>
+        <td class="num">${fmtInt(p.sales)}</td>
+        ${isAdmin ? '<td class="num">' + fmtMoney(p.revenue) + ' грн</td><td class="num" style="color:var(--accent)">' + fmtMoney(p.bonus) + ' грн</td>' : ''}
         <td class="num">${pConv === null ? '—' : pConv.toFixed(0) + '%'}</td>
         <td><span class="badge ${cplClass(pCpl)}">${cplLabel(pCpl, pApprox)}${pCpl !== null ? ' грн' : ''}</span></td>
         <td class="num ${kClass(pK)}" style="font-weight:600">${pApprox ? '≈' : ''}${pK.toFixed(2)}</td>
@@ -1004,6 +1086,7 @@ function renderVideoEntries(v, colCount) {
         <td class="num">${fmtMoney(d.budget)} грн</td>
         <td class="num">${fmtInt(d.leads)} лід.${d.pending > 0 ? ' <span class="sub pend" style="display:inline">⏳' + fmtInt(d.pending) + '</span>' : ''}</td>
         <td class="num">${fmtInt(d.targetLeads)} ЦЛ</td>
+        <td class="num">${fmtInt(d.sales || 0)} прод.${isAdmin && (d.revenue || 0) > 0 ? ' · ' + fmtMoney(d.revenue) + ' грн' : ''}</td>
         <td class="num">${dConv === null ? '—' : dConv.toFixed(0) + '%'}</td>
         <td><span class="badge ${cplClass(dCpl)}">${cplLabel(dCpl, d.pending > 0)}${dCpl !== null ? ' грн' : ''}</span></td>
       </tr>`;
@@ -1050,6 +1133,22 @@ document.getElementById('ownerTabs').addEventListener('click', e => {
   if (!btn) return;
   ownerFilter = btn.dataset.owner;
   renderOwnerTabs();
+  render();
+});
+
+document.getElementById('statusTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.page-tab');
+  if (!btn) return;
+  statusFilter = btn.dataset.status;
+  renderStatusTabs();
+  render();
+});
+
+document.getElementById('targTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.page-tab');
+  if (!btn) return;
+  targFilter = btn.dataset.targ;
+  renderTargTabs();
   render();
 });
 
